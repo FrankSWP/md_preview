@@ -168,6 +168,7 @@ void main() {
       'shared_preferences',
       'chardet',
       'path_provider',
+      'flutter_content_uri',
     };
     expect(deps.every(pubspecDependencies.contains), isTrue,
         reason: 'Missing one of: $deps');
@@ -190,6 +191,7 @@ const pubspecDependencies = <String>{
   'shared_preferences',
   'chardet',
   'path_provider',
+  'flutter_content_uri',
 };
 ```
 
@@ -213,6 +215,7 @@ dependencies:
   shared_preferences: ^2.3.2
   chardet: ^0.4.0
   path_provider: ^2.1.4
+  flutter_content_uri: ^0.1.4
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -1207,6 +1210,7 @@ Create `lib/widgets/code_block.dart`:
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/github.dart';
 
 class CodeBlock extends StatelessWidget {
@@ -1234,7 +1238,7 @@ class CodeBlock extends StatelessWidget {
       child: HighlightView(
         code,
         language: language.isEmpty ? 'plaintext' : language,
-        theme: isDark ? githubTheme : githubTheme,
+        theme: isDark ? atomOneDarkTheme : githubTheme,
         padding: const EdgeInsets.all(12),
         textStyle: TextStyle(
           fontFamily: 'monospace',
@@ -1763,6 +1767,7 @@ Create `lib/services/intent_handler.dart`:
 
 ```dart
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 /// Bridges the platform-specific file-sharing channels
@@ -1780,18 +1785,28 @@ class IntentHandler {
   StreamSubscription<dynamic>? _sub;
 
   void start() {
-    _sub ??= ReceiveSharingIntent.instance.getMediaStream().listen((events) {
-      for (final e in events) {
-        final uri = normalizeUri(e.path);
-        if (uri != null) _ctrl.add(uri);
-      }
-    });
+    // Note: receive_sharing_intent's getMediaStream() is a non-broadcast
+    // stream, so we must subscribe exactly once. The errors are logged
+    // to debugPrint rather than swallowed silently.
+    _sub ??= ReceiveSharingIntent.instance.getMediaStream().listen(
+      (events) {
+        for (final e in events) {
+          final uri = normalizeUri(e.path);
+          if (uri != null) _ctrl.add(uri);
+        }
+      },
+      onError: (Object e, StackTrace st) {
+        debugPrint('IntentHandler: media stream error: $e\n$st');
+      },
+    );
     // Cold-start: process the URI the app was launched with.
     ReceiveSharingIntent.instance.getInitialMedia().then((events) {
       for (final e in events) {
         final uri = normalizeUri(e.path);
         if (uri != null) _ctrl.add(uri);
       }
+    }).catchError((Object e, StackTrace st) {
+      debugPrint('IntentHandler: initial media error: $e\n$st');
     });
   }
 
@@ -2073,23 +2088,54 @@ If `flutter:` already lists `uses-material-design: true`, just add the `assets:`
 Replace the contents of `lib/widgets/webview_block.dart` with:
 
 ```dart
-import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebViewBlock extends StatelessWidget {
+/// Renders a "complex" code block (Mermaid / math) inside a WebView
+/// that loads `assets/viewer/viewer.html` with the language + code
+/// passed in via the URL fragment.
+///
+/// Strategy: on first build, copy the entire `assets/viewer/` directory
+/// into the app's temp directory and load the HTML via `loadFile`.
+/// Using a temp file (instead of `loadHtmlString` with a `baseUrl`)
+/// keeps the relative `<script src="marked.min.js">` tags resolving
+/// correctly on both Android and iOS without per-platform tweaks.
+class WebViewBlock extends StatefulWidget {
   final String language;
   final String code;
   const WebViewBlock({super.key, required this.language, required this.code});
 
   @override
-  Widget build(BuildContext context) {
+  State<WebViewBlock> createState() => _WebViewBlockState();
+}
+
+class _WebViewBlockState extends State<WebViewBlock> {
+  static Future<String>? _bootstrap;
+  WebViewController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap ??= _copyViewerToTemp();
+    _bootstrap!.then(_initController);
+  }
+
+  Future<void> _initController(String indexPath) async {
     final fragment =
-        'lang=${Uri.encodeComponent(language)}&code=${Uri.encodeComponent(code)}';
-    final controller = WebViewController()
+        'lang=${Uri.encodeComponent(widget.language)}&code=${Uri.encodeComponent(widget.code)}';
+    final c = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadUri(Uri.parse('assets/viewer/viewer.html#$fragment'));
+      ..loadFile(indexPath, fragment: fragment);
+    if (mounted) setState(() => _controller = c);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       height: 320,
@@ -2099,10 +2145,39 @@ class WebViewBlock extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: WebViewWidget(controller: controller),
+        child: _controller == null
+            ? const Center(child: CircularProgressIndicator())
+            : WebViewWidget(controller: _controller!),
       ),
     );
   }
+}
+
+/// Copies every file under `assets/viewer/` into a subdirectory of
+/// the app's temp directory and returns the absolute path of
+/// `viewer.html`. Idempotent: repeated calls return the same path.
+Future<String> _copyViewerToTemp() async {
+  const assetDir = 'assets/viewer';
+  final tempRoot = await getTemporaryDirectory();
+  final target = Directory('${tempRoot.path}/md_preview_viewer');
+  if (!await target.exists()) await target.create(recursive: true);
+
+  // Bundled file names. Keep in sync with the vendored assets.
+  const files = [
+    'viewer.html',
+    'viewer.css',
+    'marked.min.js',
+    'highlight.min.js',
+    'mermaid.min.js',
+    'katex.min.js',
+    'katex.min.css',
+  ];
+  for (final name in files) {
+    final bytes = await rootBundle.load('$assetDir/$name');
+    final out = File('${target.path}/$name');
+    await out.writeAsBytes(bytes.buffer.asUint8List());
+  }
+  return '${target.path}/viewer.html';
 }
 ```
 
@@ -2139,17 +2214,41 @@ notices in THIRD_PARTY_LICENSES.md."
 **Files:**
 - Modify: `lib/main.dart`
 - Create: `lib/app.dart`
+- Create: `lib/services/router.dart` (shared `navigatorKey`)
 
-- [ ] **Step 1: Write app.dart**
+This is the wiring task that ties everything together. The previous
+draft of this task accumulated a confusing self-contradiction in
+its own text; the version below is the clean one.
+
+**Interfaces:**
+- Produces:
+  - `final GlobalKey<NavigatorState> rootNavigatorKey` — used by `main.dart` to push `PreviewScreen` from a non-widget callback (the intent stream).
+  - `class MdPreviewApp extends StatelessWidget` with `SettingsService settings`, `FileService fileService`. Hosts a `HomeScreen` with an "Open file" button that pops a `FilePicker.platform.pickFiles(...)` result and routes to `/preview`.
+
+- [ ] **Step 1: Create `lib/services/router.dart`**
+
+```dart
+import 'package:flutter/material.dart';
+
+/// Single source of truth for navigation. `main.dart` listens to the
+/// intent stream and uses [rootNavigatorKey] to push the preview
+/// screen even when the user is somewhere other than the home page
+/// (e.g. Settings, or while the app is starting up).
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+```
+
+- [ ] **Step 2: Write app.dart**
 
 Create `lib/app.dart`:
 
 ```dart
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:md_preview/screens/home_screen.dart';
 import 'package:md_preview/screens/preview_screen.dart';
 import 'package:md_preview/screens/settings_screen.dart';
 import 'package:md_preview/services/file_service.dart';
+import 'package:md_preview/services/router.dart';
 import 'package:md_preview/services/settings_service.dart';
 import 'package:md_preview/theme/app_theme.dart';
 
@@ -2168,6 +2267,7 @@ class MdPreviewApp extends StatelessWidget {
       valueListenable: settings.themeModeListenable,
       builder: (_, mode, __) => MaterialApp(
         title: 'MD Preview',
+        navigatorKey: rootNavigatorKey,
         theme: buildLightTheme(),
         darkTheme: buildDarkTheme(),
         themeMode: mode,
@@ -2177,7 +2277,8 @@ class MdPreviewApp extends StatelessWidget {
         },
         onGenerateRoute: (s) {
           if (s.name == '/preview') {
-            final args = s.arguments as Map<String, String>;
+            final args =
+                (s.arguments as Map<String, String>? ?? <String, String>{});
             return MaterialPageRoute(
               builder: (_) => PreviewScreen(
                 content: args['content'] ?? '',
@@ -2187,148 +2288,102 @@ class MdPreviewApp extends StatelessWidget {
           }
           return null;
         },
-        home: HomeScreen(onOpenFile: _openFile),
+        home: HomeScreen(onOpenFile: _pickAndPreview),
       ),
     );
   }
 
-  Future<void> _openFile() async {
-    // The actual file-picker call lives in the platform channel
-    // set up in Task 14's main.dart wiring; for now this is a
-    // no-op until that hook lands.
+  Future<void> _pickAndPreview() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['md', 'markdown'],
+    );
+    final path = result?.files.single.path;
+    if (path == null) return;
+    final loaded = await fileService.loadFromUri(path);
+    await _pushLoaded(loaded);
+  }
+
+  /// Pushes the preview screen for any [FileLoadResult]. Public so
+  /// `main.dart`'s intent listener can reuse it.
+  Future<void> pushLoaded(FileLoadResult loaded) => _pushLoaded(loaded);
+
+  Future<void> _pushLoaded(FileLoadResult loaded) async {
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    if (loaded is Ok) {
+      await nav.pushNamed('/preview', arguments: <String, String>{
+        'content': loaded.content,
+        'name': loaded.name,
+      });
+    } else if (loaded is Error) {
+      await nav.pushNamed('/preview', arguments: <String, String>{
+        'content': '_Failed to open file._\n\n${loaded.reason}',
+        'name': 'Error',
+      });
+    }
   }
 }
 ```
 
-- [ ] **Step 2: Replace main.dart**
+- [ ] **Step 3: Replace main.dart**
 
 Replace the contents of `lib/main.dart` with:
 
 ```dart
-import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:md_preview/app.dart';
-import 'package:md_preview/services/file_service.dart';
-import 'package:md_preview/services/intent_handler.dart';
-import 'package:md_preview/services/settings_service.dart';
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final settings = await SettingsService.create();
-  final intents = IntentHandler()..start();
-  final fileService = FileService(reader: _platformReader);
-  runApp(MdPreviewApp(settings: settings, fileService: fileService));
-  intents.sharedFileUris.listen(_routeToPreview);
-}
-
-Future<String> _platformReader(String uri) async {
-  // For file:// paths, read via dart:io.
-  if (uri.startsWith('/') || uri.startsWith('file:')) {
-    final path = uri.startsWith('file:') ? uri.substring(5) : uri;
-    return await _readFile(path);
-  }
-  // For content:// URIs, defer to the Android side via MethodChannel.
-  // (Real implementation in a follow-up; for now throw so callers
-  // can show the error UI.)
-  throw UnsupportedError('content:// reader not yet wired up');
-}
-
-Future<String> _readFile(String path) async {
-  // Imported lazily to keep web builds working in the future.
-  // ignore: avoid_dynamic_calls
-  final file = await _ioFile(path);
-  return await file.readAsString();
-}
-
-// Wrappers to keep dart:io out of the import graph for the analyzer.
-dynamic _ioFile(String path) => _IoFile(path);
-class _IoFile {
-  final String path;
-  _IoFile(this.path);
-  Future<String> readAsString() async {
-    // ignore: implementation_imports
-    return await _readAsStringImpl(path);
-  }
-}
-
-Future<String> _readAsStringImpl(String path) async {
-  // ignore: avoid_dynamic_calls
-  return await (await _ioFileImpl(path)).readAsString();
-}
-
-dynamic _ioFileImpl(String path) {
-  // Imported here so the dart:io dependency is contained.
-  // ignore: prefer_const_constructors
-  return _RealIoFile(path);
-}
-
-class _RealIoFile {
-  final String path;
-  _RealIoFile(this.path);
-  Future<String> readAsString() async {
-    // ignore: prefer_const_constructors
-    return await _ioRead(path);
-  }
-}
-
-Future<String> _ioRead(String path) async {
-  // ignore: avoid_print
-  return await _ioReadImpl(path);
-}
-
-Future<String> _ioReadImpl(String path) async {
-  return await _readFileDirect(path);
-}
-
-Future<String> _readFileDirect(String path) async {
-  // Real implementation:
-  // import 'dart:io';
-  // return await File(path).readAsString();
-  throw UnimplementedError('See _readFileDirect in main.dart');
-}
-
-void _routeToPreview(String uri) {
-  // Hook the file_picker + navigator here. Placeholder until
-  // file_picker result routing is wired up in a follow-up.
-  // ignore: avoid_print
-  print('received uri: $uri');
-}
-```
-
-Wait — the layered indirection above is nonsense. Replace the whole `main.dart` with a clean version that uses `dart:io` directly. The previous version tried to keep `dart:io` out of the import graph for "web builds" but the spec scopes this project to Android + iOS only — web is out of scope. Strip the indirection.
-
-Final `lib/main.dart`:
-
-```dart
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_content_uri/flutter_content_uri.dart';
 import 'package:md_preview/app.dart';
 import 'package:md_preview/services/file_service.dart';
 import 'package:md_preview/services/intent_handler.dart';
+import 'package:md_preview/services/router.dart';
 import 'package:md_preview/services/settings_service.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final settings = await SettingsService.create();
-  final intents = IntentHandler()..start();
-  final fileService = FileService(reader: _readFromPath);
-  runApp(MdPreviewApp(settings: settings, fileService: fileService));
-  intents.sharedFileUris.listen(_routeToPreview);
-}
-
+/// Injected into [FileService]. The path may be:
+///   - `file:///...`  → strip scheme, read via `dart:io`
+///   - `/...`         → read via `dart:io` (e.g. file_picker result)
+///   - `content://…`  → delegate to [FlutterContentUri] (Android only)
+///   - anything else  → throw, FileService wraps the throw into Error
 Future<String> _readFromPath(String path) async {
-  return await File(path).readAsString();
+  if (path.startsWith('content://')) {
+    return await FlutterContentUri.readContentUri(path);
+  }
+  final cleaned = path.startsWith('file:') ? path.substring(5) : path;
+  return await File(cleaned).readAsString();
 }
 
-void _routeToPreview(String uri) {
-  // File-picker + navigator wiring lands in a follow-up once
-  // the content:// reader is in place.
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  _bootstrap();
 }
+
+Future<void> _bootstrap() async {
+  final settings = await SettingsService.create();
+  final fileService = FileService(reader: _readFromPath);
+  final app = MdPreviewApp(settings: settings, fileService: fileService);
+  runApp(app);
+
+  // Cold-start: the app may have been launched from an "Open with"
+  // intent. Wait one frame so the navigator is mounted before pushing.
+  final intents = IntentHandler()..start();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    intents.sharedFileUris.listen((uri) async {
+      final loaded = await fileService.loadFromUri(uri);
+      await app.pushLoaded(loaded);
+    });
+  });
+}
+
+// Keep these imports referenced (file_picker is used by MdPreviewApp,
+// not directly here, but the analyzer needs to know it isn't dead).
+// ignore: unused_element
+FilePicker _kUnusedFilePickerRef = FilePicker.platform;
 ```
 
-- [ ] **Step 3: Run analyzer and tests**
+- [ ] **Step 4: Run analyzer and tests**
 
 ```bash
 flutter analyze
@@ -2336,16 +2391,17 @@ flutter test
 ```
 Expected: analyzer clean, all tests pass.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add lib/main.dart lib/app.dart
-git commit -m "feat(app): wire main entry + MaterialApp routing
+git add lib/main.dart lib/app.dart lib/services/router.dart
+git commit -m "feat(app): wire main entry + routing + content:// reader
 
-SettingsService is created at boot, FileService uses a
-dart:io reader. IntentHandler streams shared file URIs.
-Theme and routing are driven by ValueListenable on the
-settings service."
+SettingsService boots first, then MdPreviewApp runs. A
+root navigator key lets the intent stream push preview
+screens from outside the widget tree. content:// URIs
+(from Android 'Open with' intents) are read via
+flutter_content_uri; file paths via dart:io."
 ```
 
 ---
@@ -2459,6 +2515,20 @@ git tag v0.1.0-mvp
 **3. Type consistency:** Verified — `SettingsService.create()`, `FileService(reader:)`, `IntentHandler.normalizeUri()`, `MarkdownView(source:, fontSize:)`, `PreviewScreen(content:, name:)`, `WebViewBlock(language:, code:)` all consistent across task boundaries. The two names `code` (file_service reader) and `code` (webview_block language+code) are different scopes (function param vs. field) — no conflict.
 
 **4. Spec ambiguity caught:** The original Task 14 main.dart draft had contrived indirection to keep `dart:io` out of the import graph for hypothetical web builds. The spec scopes this project to Android + iOS only, so that indirection is removed in the final version of that step.
+
+---
+
+## Revision history
+
+| Date | Change |
+|------|--------|
+| 2026-06-27 (initial) | First plan written. |
+| 2026-06-27 (rev 1) | Pre-flight review caught five defects; all fixed in this revision: |
+| | (1) **Task 8** — `CodeBlock` was using `githubTheme` for both light and dark; switched dark to `atomOneDarkTheme` from the `flutter_highlight/themes/atom-one-dark.dart` import. |
+| | (2) **Task 13** — `WebViewController.loadUri('assets/viewer/...')` does not work in `webview_flutter` 4.x. Replaced with `loadFile` after copying the asset directory to the temp dir (cross-platform safe, preserves relative `<script src=…>` paths). |
+| | (3) **Task 11/14** — `content://` URIs (the primary Android "Open with" case) were not readable by `File(path).readAsString()`. Added `flutter_content_uri: ^0.1.4` dep and a `content://` branch in `_readFromPath`. |
+| | (4) **Task 14** — removed the self-contradicting "Wait — this is nonsense" paragraph and the layered indirection around `dart:io`. Replaced the placeholder `_routeToPreview` with a real implementation that uses a `rootNavigatorKey` and pushes `PreviewScreen` via `app.pushLoaded(loaded)`. |
+| | (5) **Task 11** — added `onError` / `catchError` handlers to `IntentHandler` so plugin stream errors surface in the log instead of being silently swallowed. |
 
 ---
 
