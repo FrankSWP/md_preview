@@ -168,7 +168,7 @@ void main() {
       'shared_preferences',
       'chardet',
       'path_provider',
-      'flutter_content_uri',
+      'uri_content',
     };
     expect(deps.every(pubspecDependencies.contains), isTrue,
         reason: 'Missing one of: $deps');
@@ -189,9 +189,8 @@ const pubspecDependencies = <String>{
   'file_picker',
   'receive_sharing_intent',
   'shared_preferences',
-  'chardet',
   'path_provider',
-  'flutter_content_uri',
+  'uri_content',
 };
 ```
 
@@ -215,7 +214,7 @@ dependencies:
   shared_preferences: ^2.3.2
   chardet: ^0.4.0
   path_provider: ^2.1.4
-  flutter_content_uri: ^0.1.4
+  uri_content: ^3.1.3
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -2529,6 +2528,10 @@ git tag v0.1.0-mvp
 | | (3) **Task 11/14** — `content://` URIs (the primary Android "Open with" case) were not readable by `File(path).readAsString()`. Added `flutter_content_uri: ^0.1.4` dep and a `content://` branch in `_readFromPath`. |
 | | (4) **Task 14** — removed the self-contradicting "Wait — this is nonsense" paragraph and the layered indirection around `dart:io`. Replaced the placeholder `_routeToPreview` with a real implementation that uses a `rootNavigatorKey` and pushes `PreviewScreen` via `app.pushLoaded(loaded)`. |
 | | (5) **Task 11** — added `onError` / `catchError` handlers to `IntentHandler` so plugin stream errors surface in the log instead of being silently swallowed. |
+| 2026-06-27 (rev 2) | **Task 2 dependency fix during execution:** |
+| | (a) `flutter_content_uri: ^0.1.4` does NOT exist on pub.dev. The actual pub.dev package is `uri_content` (https://pub.dev/packages/uri_content). The 4.x line requires Dart 3.12+; with Flutter 3.24.3 / Dart 3.5.3 we pin to `uri_content: ^3.1.3` (3.x is the latest line compatible with our SDK). |
+| | (b) `chardet: ^0.4.0` does NOT exist on pub.dev. Removed for the MVP — non-UTF-8 file reading will assume UTF-8 for now; encoding detection can be revisited with a real package (e.g. `encoding_detector: ^1.0.0`) in a later iteration. |
+| | (c) **Task 14's `_readFromPath` must be updated to use `uri_content`'s `UriContent` API** in place of the planned `FlutterContentUri.readContentUri`. API surface: `UriContent.instance.contentAsBytes(Uri.parse(path))` returns `Uint8List`; decode with `utf8.decode(bytes)`. |
 
 ---
 
