@@ -6,14 +6,14 @@ void main() {
   testWidgets('PreviewScreen shows the file name in the AppBar',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
-      home: PreviewScreen(content: '# Hi', name: 'readme.md'),
+      home: PreviewScreen(content: '# Hi', name: 'readme.md', fontSize: 16),
     ),);
     expect(find.text('readme.md'), findsOneWidget);
   });
 
   testWidgets('PreviewScreen renders the markdown body', (tester) async {
     await tester.pumpWidget(const MaterialApp(
-      home: PreviewScreen(content: '# Hi', name: 'readme.md'),
+      home: PreviewScreen(content: '# Hi', name: 'readme.md', fontSize: 16),
     ),);
     expect(find.text('Hi'), findsOneWidget);
   });

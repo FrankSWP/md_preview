@@ -39,6 +39,7 @@ class MdPreviewApp extends StatelessWidget {
               builder: (_) => PreviewScreen(
                 content: args['content'] ?? '',
                 name: args['name'] ?? '',
+                fontSize: settings.fontSizeListenable.value,
               ),
             );
           }
@@ -68,15 +69,21 @@ class MdPreviewApp extends StatelessWidget {
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     if (loaded is Ok) {
-      await nav.pushNamed('/preview', arguments: <String, String>{
-        'content': loaded.content,
-        'name': loaded.name,
-      },);
+      await nav.pushNamed(
+        '/preview',
+        arguments: <String, String>{
+          'content': loaded.content,
+          'name': loaded.name,
+        },
+      );
     } else if (loaded is Error) {
-      await nav.pushNamed('/preview', arguments: <String, String>{
-        'content': '_Failed to open file._\n\n${loaded.reason}',
-        'name': 'Error',
-      },);
+      await nav.pushNamed(
+        '/preview',
+        arguments: <String, String>{
+          'content': '_Failed to open file._\n\n${loaded.reason}',
+          'name': 'Error',
+        },
+      );
     }
   }
 }

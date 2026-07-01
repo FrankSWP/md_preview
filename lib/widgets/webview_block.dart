@@ -71,10 +71,10 @@ class _ViewerAssets {
   _ViewerAssets(this.indexPath);
 }
 
-/// Copies every file under `assets/viewer/` into a subdirectory of
-/// the app's temp directory and returns an object holding the absolute
-/// path of `viewer.html`. Idempotent: repeated calls return the same
-/// path.
+/// Copies every file under `assets/viewer/` (including the `fonts/`
+/// subdirectory used by KaTeX) into a subdirectory of the app's
+/// temp directory and returns an object holding the absolute path of
+/// `viewer.html`. Idempotent: repeated calls return the same path.
 Future<_ViewerAssets> _copyViewerToTemp() async {
   const assetDir = 'assets/viewer';
   final tempRoot = await getTemporaryDirectory();
@@ -94,6 +94,39 @@ Future<_ViewerAssets> _copyViewerToTemp() async {
   for (final name in files) {
     final bytes = await rootBundle.load('$assetDir/$name');
     final out = File('${target.path}/$name');
+    await out.writeAsBytes(bytes.buffer.asUint8List());
+  }
+
+  // KaTeX fonts (referenced by katex.min.css as `fonts/KaTeX_*.woff2`).
+  final fontsDir = Directory('${target.path}/fonts');
+  if (!await fontsDir.exists()) await fontsDir.create(recursive: true);
+  // List assets in `assets/viewer/fonts/` via AssetBundle so the set is
+  // data-driven rather than hard-coded.
+  final bundle = rootBundle;
+  final fontNames = <String>[];
+  for (final name in const [
+    'KaTeX_AMS-Regular',
+    'KaTeX_Caligraphic-Bold',
+    'KaTeX_Caligraphic-Regular',
+    'KaTeX_Fraktur-Bold',
+    'KaTeX_Fraktur-Regular',
+    'KaTeX_Main-Bold',
+    'KaTeX_Main-BoldItalic',
+    'KaTeX_Main-Italic',
+    'KaTeX_Main-Regular',
+    'KaTeX_Math-BoldItalic',
+    'KaTeX_Math-Italic',
+    'KaTeX_SansSerif-Bold',
+    'KaTeX_SansSerif-Italic',
+    'KaTeX_SansSerif-Regular',
+    'KaTeX_Script-Regular',
+    'KaTeX_Typewriter-Regular',
+  ]) {
+    fontNames.add('$name.woff2');
+  }
+  for (final name in fontNames) {
+    final bytes = await bundle.load('$assetDir/fonts/$name');
+    final out = File('${target.path}/fonts/$name');
     await out.writeAsBytes(bytes.buffer.asUint8List());
   }
   return _ViewerAssets('${target.path}/viewer.html');
