@@ -29,6 +29,8 @@ void main() {
 
 Future<void> _bootstrap() async {
   final settings = await SettingsService.create();
+  // FileReader is a function, not a const — cannot use const constructor
+  // ignore: prefer_const_constructors
   final fileService = FileService(reader: _readFromPath);
   final app = MdPreviewApp(settings: settings, fileService: fileService);
   runApp(app);
