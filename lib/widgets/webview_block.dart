@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -137,6 +138,47 @@ class _ViewerServer {
     final highlightJs = await rootBundle.loadString('$assetDir/highlight.min.js');
     final mermaidJs = await rootBundle.loadString('$assetDir/mermaid.min.js');
     final katexJs = await rootBundle.loadString('$assetDir/katex.min.js');
+    final katexCss = await rootBundle.loadString('$assetDir/katex.min.css');
+
+    // Build a map of woff2 filename -> data: URL for every bundled font.
+    final fontNames = [
+      'KaTeX_AMS-Regular',
+      'KaTeX_Caligraphic-Bold',
+      'KaTeX_Caligraphic-Regular',
+      'KaTeX_Fraktur-Bold',
+      'KaTeX_Fraktur-Regular',
+      'KaTeX_Main-Bold',
+      'KaTeX_Main-BoldItalic',
+      'KaTeX_Main-Italic',
+      'KaTeX_Main-Regular',
+      'KaTeX_Math-BoldItalic',
+      'KaTeX_Math-Italic',
+      'KaTeX_SansSerif-Bold',
+      'KaTeX_SansSerif-Italic',
+      'KaTeX_SansSerif-Regular',
+      'KaTeX_Script-Regular',
+      'KaTeX_Typewriter-Regular',
+    ];
+
+    final fontDataMap = <String, String>{};
+    for (final name in fontNames) {
+      final assetKey = '$assetDir/fonts/$name.woff2';
+      try {
+        final bytes = await rootBundle.load(assetKey);
+        fontDataMap[name] = 'data:font/woff2;base64,${base64Encode(bytes.buffer.asUint8List())}';
+      } catch (_) {
+        // Font not found in bundle — skip and leave url() untouched.
+      }
+    }
+
+    // Replace each url(fonts/<name>.woff2) with the corresponding data: URL.
+    var patchedCss = katexCss;
+    for (final entry in fontDataMap.entries) {
+      patchedCss = patchedCss.replaceAll(
+        'url(fonts/${entry.key}.woff2)',
+        entry.value,
+      );
+    }
 
     String inlineLib(String code) => '<script>$code</script>';
 
@@ -156,6 +198,7 @@ class _ViewerServer {
         .replaceFirst(
           '<script src="katex.min.js"></script>',
           inlineLib(katexJs),
-        );
+        )
+        .replaceFirst('__KATEX_CSS__', patchedCss);
   }
 }
