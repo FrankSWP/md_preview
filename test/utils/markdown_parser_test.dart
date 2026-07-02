@@ -21,6 +21,76 @@ void main() {
     });
   });
 
+  group('parseInlineSegments', () {
+    test('splits paragraph with inline $...$ into text + math + text', () {
+      final segs = parseInlineSegments(r'行内公式：$E = mc^2$');
+      expect(segs.length, 3);
+      expect(segs[0], const InlineText('行内公式：'));
+      expect(segs[1], const InlineMath('E = mc^2'));
+      expect(segs[2], const InlineText(''));
+    });
+
+    test('does not treat \$5.99 as math (currency heuristic)', () {
+      final segs = parseInlineSegments(r'Price: $5.99');
+      expect(segs.length, 1);
+      expect(segs[0], const InlineText(r'Price: $5.99'));
+    });
+
+    test('treats an unclosed \$ as literal text', () {
+      final segs = parseInlineSegments(r'未闭合：$x');
+      expect(segs.length, 1);
+      expect(segs[0], const InlineText(r'未闭合：$x'));
+    });
+
+    test('multiple formulas in one paragraph', () {
+      final segs = parseInlineSegments(r'$a$ and $b$');
+      // Segments are: InlineMath("a"), InlineText(" and "), InlineMath("b")
+      // (consecutive text segments are merged).
+      expect(segs.length, 3);
+      expect(segs[0], const InlineMath('a'));
+      expect(segs[1], const InlineText(' and '));
+      expect(segs[2], const InlineMath('b'));
+    });
+
+    test('formula with no surrounding text', () {
+      final segs = parseInlineSegments(r'$x^2$');
+      expect(segs.length, 1);
+      expect(segs[0], const InlineMath('x^2'));
+    });
+
+    test('whitespace around formula is trimmed from formula', () {
+      final segs = parseInlineSegments(r'[$  E = mc^2  $]');
+      expect(segs.length, 3);
+      expect(segs[0], const InlineText('['));
+      expect(segs[1], const InlineMath('E = mc^2'));
+      expect(segs[2], const InlineText(']'));
+    });
+  });
+
+  group('parseMarkdown — inline math', () {
+    test('inline $...$ becomes ParagraphBlock with math segments', () {
+      final blocks = parseMarkdown(r'行内公式：$E = mc^2$');
+      final ps = blocks.whereType<ParagraphBlock>().toList();
+      expect(ps.length, 1);
+      final segs = ps[0].resolvedSegments;
+      expect(segs.whereType<InlineMath>().length, 1);
+      expect(segs.whereType<InlineText>().length, 2);
+    });
+
+    test('\$\$ block math becomes CodeBlock, not inline', () {
+      final blocks = parseMarkdown(r'$$E=mc^2$$');
+      expect(blocks.whereType<CodeBlock>().length, 1);
+      expect(blocks.whereType<ParagraphBlock>(), isEmpty);
+    });
+
+    test('plain paragraph without $ has no InlineMath segments', () {
+      final blocks = parseMarkdown('Hello world');
+      final ps = blocks.whereType<ParagraphBlock>().toList();
+      expect(ps.length, 1);
+      expect(ps[0].resolvedSegments.whereType<InlineMath>(), isEmpty);
+    });
+  });
+
   group('parseMarkdown', () {
     test('parses a heading', () {
       final blocks = parseMarkdown('# Title');

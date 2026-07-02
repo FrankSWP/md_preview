@@ -52,7 +52,7 @@
       });
       return out;
     }
-    const { lang, code } = parseFragment();
+    const { lang, code, displayMode } = parseFragment();
     const target = document.getElementById('content');
     const dark = matchMedia('(prefers-color-scheme: dark)').matches;
     document.body.classList.toggle('dark', dark);
@@ -86,7 +86,7 @@
             return;
           }
           target.innerHTML = katex.renderToString(code, {
-            displayMode: true,
+            displayMode: displayMode !== 'false',
             throwOnError: false,
           });
           console.log('[viewer] katex.renderToString() done');

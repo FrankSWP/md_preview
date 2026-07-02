@@ -10,6 +10,21 @@ library;
 
 enum CodeBlockKind { plain, mermaid, math }
 
+/// An inline segment within a paragraph: either plain text or a math formula.
+sealed class InlineSegment {
+  const InlineSegment();
+}
+
+class InlineText extends InlineSegment {
+  final String text;
+  const InlineText(this.text);
+}
+
+class InlineMath extends InlineSegment {
+  final String formula;
+  const InlineMath(this.formula);
+}
+
 sealed class ParsedBlock {
   const ParsedBlock();
 }
@@ -20,9 +35,23 @@ class HeadingBlock extends ParsedBlock {
   const HeadingBlock(this.level, this.text);
 }
 
+/// A paragraph block, optionally split into inline text/math [segments].
+///
+/// If [segments] is null, the paragraph contains no inline math and
+/// [text] should be rendered as-is by flutter_markdown. When segments
+/// are present, render each segment individually (text as Text widget,
+/// math as a small inline WebView).
 class ParagraphBlock extends ParsedBlock {
   final String text;
-  const ParagraphBlock(this.text);
+  final List<InlineSegment>? segments;
+  const ParagraphBlock(this.text, {this.segments});
+
+  /// Returns the inline segments for this paragraph, computing them on
+  /// first access if they have not been pre-computed.
+  List<InlineSegment> get resolvedSegments {
+    if (segments != null) return segments!;
+    return parseInlineSegments(text);
+  }
 }
 
 class CodeBlock extends ParsedBlock {
@@ -218,7 +247,8 @@ List<ParsedBlock> parseMarkdown(String source) {
       para.add(lines[i]);
       i++;
     }
-    blocks.add(ParagraphBlock(para.join('\n')));
+    final paraText = para.join('\n');
+    blocks.add(ParagraphBlock(paraText, segments: parseInlineSegments(paraText)));
   }
   return blocks;
 }
@@ -237,4 +267,73 @@ List<String> _splitRow(String line) {
 bool _isMathBlockBoundary(String line) {
   final t = line.trimLeft();
   return t == r'$$' || t.startsWith(r'$$');
+}
+
+/// Split [text] into alternating [InlineText] and [InlineMath] segments.
+///
+/// Scans for unescaped single `$...$` patterns that are NOT currency
+/// (i.e. the `$` is not immediately followed by a digit). Multi-line
+/// math is not supported — a formula must start and end on the same
+/// line.
+List<InlineSegment> parseInlineSegments(String text) {
+  final segments = <InlineSegment>[];
+  var pos = 0;
+
+  while (pos < text.length) {
+    // Find the next '$' that could be a math opener.
+    var dollarPos = text.indexOf('\$', pos);
+    while (dollarPos != -1) {
+      // Currency heuristic: $ immediately followed by a digit is not math.
+      if (dollarPos + 1 < text.length && _isDigit(text[dollarPos + 1])) {
+        dollarPos = text.indexOf('\$', dollarPos + 1);
+        continue;
+      }
+      break;
+    }
+
+    if (dollarPos == -1) {
+      // No more '$' found — rest is plain text.
+      segments.add(InlineText(text.substring(pos)));
+      break;
+    }
+
+    // Emit text before this '$'.
+    if (dollarPos > pos) {
+      segments.add(InlineText(text.substring(pos, dollarPos)));
+    }
+
+    // Find the closing '$'.
+    final closePos = text.indexOf('\$', dollarPos + 1);
+    if (closePos == -1) {
+      // Unclosed '$' — treat the opening '$' as literal text, continue scanning.
+      segments.add(InlineText(text.substring(dollarPos)));
+      break;
+    }
+
+    // Extract and trim the formula.
+    final formula = text.substring(dollarPos + 1, closePos).trim();
+    segments.add(InlineMath(formula));
+
+    pos = closePos + 1;
+  }
+
+  // Merge consecutive InlineText segments to keep the list tidy.
+  return _mergeConsecutiveText(segments);
+}
+
+bool _isDigit(String c) => c.codeUnitAt(0) >= 0x30 && c.codeUnitAt(0) <= 0x39;
+
+List<InlineSegment> _mergeConsecutiveText(List<InlineSegment> segments) {
+  if (segments.isEmpty) return segments;
+  final merged = <InlineSegment>[];
+  for (final seg in segments) {
+    if (seg is InlineText && merged.isNotEmpty && merged.last is InlineText) {
+      merged[merged.length - 1] = InlineText(
+        (merged.last as InlineText).text + seg.text,
+      );
+    } else {
+      merged.add(seg);
+    }
+  }
+  return merged;
 }
