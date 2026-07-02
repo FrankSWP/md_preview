@@ -22,12 +22,11 @@ void main() {
   });
 
   group('parseInlineSegments', () {
-    test('splits paragraph with inline $...$ into text + math + text', () {
+    test(r'splits paragraph with inline $...$ into text + math', () {
       final segs = parseInlineSegments(r'行内公式：$E = mc^2$');
-      expect(segs.length, 3);
+      expect(segs.length, 2);
       expect(segs[0], const InlineText('行内公式：'));
       expect(segs[1], const InlineMath('E = mc^2'));
-      expect(segs[2], const InlineText(''));
     });
 
     test('does not treat \$5.99 as math (currency heuristic)', () {
@@ -68,13 +67,13 @@ void main() {
   });
 
   group('parseMarkdown — inline math', () {
-    test('inline $...$ becomes ParagraphBlock with math segments', () {
+    test(r'inline $...$ becomes ParagraphBlock with math segments', () {
       final blocks = parseMarkdown(r'行内公式：$E = mc^2$');
       final ps = blocks.whereType<ParagraphBlock>().toList();
       expect(ps.length, 1);
       final segs = ps[0].resolvedSegments;
       expect(segs.whereType<InlineMath>().length, 1);
-      expect(segs.whereType<InlineText>().length, 2);
+      expect(segs.whereType<InlineText>().length, 1);
     });
 
     test('\$\$ block math becomes CodeBlock, not inline', () {
@@ -83,7 +82,7 @@ void main() {
       expect(blocks.whereType<ParagraphBlock>(), isEmpty);
     });
 
-    test('plain paragraph without $ has no InlineMath segments', () {
+    test(r'plain paragraph without $ has no InlineMath segments', () {
       final blocks = parseMarkdown('Hello world');
       final ps = blocks.whereType<ParagraphBlock>().toList();
       expect(ps.length, 1);

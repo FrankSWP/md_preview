@@ -65,7 +65,7 @@ class MarkdownView extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontSize: fontSize,
                         height: 1.55,
-                      ))
+                      ),)
             else if (seg is InlineMath)
               _InlineMathView(formula: seg.formula),
         ],
@@ -132,7 +132,7 @@ class _InlineMathViewState extends State<_InlineMathView> {
   @override
   void initState() {
     super.initState();
-    _ViewerServer.instance.start().then((port) {
+    ViewerServer.instance.start().then((int port) {
       if (!mounted) return;
       _initController(port);
     }).catchError((Object err, StackTrace st) {
@@ -156,13 +156,13 @@ class _InlineMathViewState extends State<_InlineMathView> {
   Widget build(BuildContext context) {
     return Container(
       height: _inlineMathHeight,
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minHeight: _inlineMathHeight,
         maxHeight: _inlineMathHeight,
       ),
       margin: const EdgeInsets.symmetric(horizontal: 2),
       child: _controller == null
-          ? SizedBox(width: _inlineMathHeight, height: _inlineMathHeight)
+          ? const SizedBox(width: _inlineMathHeight, height: _inlineMathHeight)
           : SizedBox(
               width: _inlineMathHeight,
               height: _inlineMathHeight,

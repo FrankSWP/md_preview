@@ -43,7 +43,7 @@ class _WebViewBlockState extends State<WebViewBlock> {
   @override
   void initState() {
     super.initState();
-    _ViewerServer.instance.start().then((port) {
+    ViewerServer.instance.start().then((int port) {
       if (!mounted) return;
       _initController(port);
     }).catchError((Object err, StackTrace st) {
@@ -95,9 +95,9 @@ class _WebViewBlockState extends State<WebViewBlock> {
 /// App-scoped local HTTP server. Bound to `127.0.0.1` on an ephemeral
 /// port; serves the same fully-inlined viewer HTML for every path.
 /// Each [WebViewBlock] reads its own data from the URL fragment.
-class _ViewerServer {
-  _ViewerServer._();
-  static final _ViewerServer instance = _ViewerServer._();
+class ViewerServer {
+  ViewerServer._();
+  static final ViewerServer instance = ViewerServer._();
 
   HttpServer? _server;
   String? _bundledHtml;

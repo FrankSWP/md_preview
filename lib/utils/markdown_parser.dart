@@ -18,11 +18,27 @@ sealed class InlineSegment {
 class InlineText extends InlineSegment {
   final String text;
   const InlineText(this.text);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InlineText && other.text == text);
+
+  @override
+  int get hashCode => text.hashCode;
 }
 
 class InlineMath extends InlineSegment {
   final String formula;
   const InlineMath(this.formula);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InlineMath && other.formula == formula);
+
+  @override
+  int get hashCode => formula.hashCode;
 }
 
 sealed class ParsedBlock {
