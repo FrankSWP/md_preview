@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 
@@ -38,13 +40,13 @@ void main() {
     // Verify the placeholder exists in the original viewer.html
     expect(viewerHtml.contains('__KATEX_CSS__'), isTrue);
 
-    // Verify the CSS contains a known KaTeX rule
-    expect(katexCss.contains('.katex .mord'), isTrue);
+    // Verify the CSS contains a known KaTeX rule (minified name)
+    expect(katexCss.contains('.katex-display'), isTrue);
 
     // After replacement the placeholder should be gone and CSS should be present
     final bundled = viewerHtml.replaceFirst('__KATEX_CSS__', katexCss);
     expect(bundled.contains('__KATEX_CSS__'), isFalse);
-    expect(bundled.contains('.katex .mord'), isTrue);
+    expect(bundled.contains('.katex-display'), isTrue);
   });
 
   test('all 16 bundled woff2 fonts are encoded as data: URLs', () async {
@@ -91,9 +93,16 @@ void main() {
       );
     }
 
-    // Count remaining url(fonts/) references (the 4 missing Size1-4 fonts)
+    // Count remaining url(fonts/) references. The CSS uses 3 formats
+    // per font (woff2/woff/ttf = 60 total). Our patch only replaces
+    // woff2 URLs for the 16 vendored fonts (16 woff2 patched), so
+    // 60 - 16 = 44 url(fonts/) refs remain (12 for Size1-4 × 3 formats,
+    // plus 32 for woff/ttf fallbacks for the 16 vendored fonts that
+    // browsers will never fetch on Android).
     final urlFontCount = RegExp(r'url\(fonts/').allMatches(bundled).length;
-    expect(urlFontCount, equals(4), reason: 'Found $urlFontCount remaining url(fonts/) references (Size1-4 missing from bundle)');
+    expect(urlFontCount, equals(44),
+        reason: 'Expected 44 remaining url(fonts/) refs '
+            '(60 total - 16 vendored woff2 replaced), got $urlFontCount',);
   });
 
   test('__KATEX_CSS__ placeholder is replaced in final HTML', () async {
