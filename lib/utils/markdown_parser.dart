@@ -99,6 +99,38 @@ List<ParsedBlock> parseMarkdown(String source) {
   while (i < lines.length) {
     final line = lines[i];
 
+    // `$$...$$` math block (KaTeX / LaTeX). May be on its own line
+    // (with the formula on subsequent lines) or on the same line as
+    // the opening `$$`. Common form is:
+    //     $$
+    //     \frac{a}{b}
+    //     $$
+    final t = line.trimLeft();
+    if (t == r'$$' || t.startsWith(r'$$')) {
+      final buf = <String>[];
+      if (t == r'$$') {
+        i++;
+      } else {
+        buf.add(t.substring(2).trim());
+        i++;
+      }
+      while (i < lines.length) {
+        final next = lines[i].trimLeft();
+        if (next == r'$$') {
+          i++;
+          break;
+        }
+        buf.add(lines[i]);
+        i++;
+      }
+      blocks.add(CodeBlock(
+        language: 'math',
+        code: buf.join('\n').trim(),
+        kind: CodeBlockKind.math,
+      ),);
+      continue;
+    }
+
     if (isFence(line)) {
       final lang = fenceLang(line);
       final fenceChar = line.trimLeft()[0];
@@ -181,7 +213,8 @@ List<ParsedBlock> parseMarkdown(String source) {
         !isFence(lines[i]) &&
         !lines[i].startsWith('#') &&
         !lines[i].trimLeft().startsWith('|') &&
-        !lines[i].trimLeft().startsWith('- ')) {
+        !lines[i].trimLeft().startsWith('- ') &&
+        !_isMathBlockBoundary(lines[i])) {
       para.add(lines[i]);
       i++;
     }
@@ -195,4 +228,13 @@ List<String> _splitRow(String line) {
   if (t.startsWith('|')) t = t.substring(1);
   if (t.endsWith('|')) t = t.substring(0, t.length - 1);
   return t.split('|').map((c) => c.trim()).toList();
+}
+
+/// True if [line] is the opening or closing `$$` of a math block.
+/// Paragraph collection must treat these as boundaries so that an
+/// `$$\nformula\n$$` block is not swallowed into the surrounding
+/// paragraph.
+bool _isMathBlockBoundary(String line) {
+  final t = line.trimLeft();
+  return t == r'$$' || t.startsWith(r'$$');
 }

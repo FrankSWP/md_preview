@@ -3,18 +3,25 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-/// Renders a "complex" code block (Mermaid / math) inside a WebView
-/// that loads `assets/viewer/viewer.html` with the language + code
-/// passed in via the URL fragment.
+/// Renders a "complex" code block (Mermaid / math) inside a WebView.
 ///
-/// Strategy: on first build, copy the entire `assets/viewer/` directory
-/// into the app's temp directory and load the HTML via [loadHtmlString]
-/// with [baseUrl] set to the temp directory. This keeps the relative
-/// `<script src="marked.min.js">` tags resolving correctly on both
-/// Android and iOS without per-platform tweaks.
+/// Strategy: a single app-scoped HTTP server on `127.0.0.1` serves the
+/// fully-inlined HTML (marked, highlight.js, mermaid, KaTeX) at every
+/// path. Each [WebViewBlock] navigates to that server with a
+/// `lang=...&code=...` URL fragment that the page parses on load.
+///
+/// Why a local HTTP server: Chromium WebView refuses to navigate to
+/// any URL longer than 2,097,152 characters, and `loadHtmlString`
+/// uses the same internal `data:` URL mechanism — so the bundled HTML
+/// (with mermaid's 3.3 MB minified library) cannot be passed via
+/// `loadHtmlString` / `data:` URL. file:// loading also fails on
+/// Android (renderer crash on refusal). Serving the HTML over a
+/// short `http://127.0.0.1:port/...` URL sidesteps every length
+/// limit. Same content, no special permissions beyond
+/// `usesCleartextTraffic="true"` (which is local-only and allowed by
+/// the platform for loopback).
 class WebViewBlock extends StatefulWidget {
   final String language;
   final String code;
@@ -25,24 +32,43 @@ class WebViewBlock extends StatefulWidget {
 }
 
 class _WebViewBlockState extends State<WebViewBlock> {
-  static Future<_ViewerAssets>? _bootstrap;
+  static const double _minHeight = 120;
+  static const double _maxHeight = 720;
+  static const double _initialHeight = 240;
+
   WebViewController? _controller;
+  double _contentHeight = _initialHeight;
 
   @override
   void initState() {
     super.initState();
-    _bootstrap ??= _copyViewerToTemp();
-    _bootstrap!.then(_initController);
+    _ViewerServer.instance.start().then((port) {
+      if (!mounted) return;
+      _initController(port);
+    }).catchError((Object err, StackTrace st) {
+      debugPrint('[WebViewBlock] server start failed: $err\n$st');
+    });
   }
 
-  Future<void> _initController(_ViewerAssets assets) async {
+  Future<void> _initController(int port) async {
     final fragment =
         'lang=${Uri.encodeComponent(widget.language)}&code=${Uri.encodeComponent(widget.code)}';
-    final uri = Uri.file(assets.indexPath).replace(fragment: fragment);
-    final html = await File(assets.indexPath).readAsString();
-    final c = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadHtmlString(html, baseUrl: uri.toString());
+    final uri = Uri.parse('http://127.0.0.1:$port/#$fragment');
+    debugPrint('[WebViewBlock] navigating to $uri');
+    final c = WebViewController();
+    await c.setJavaScriptMode(JavaScriptMode.unrestricted);
+    await c.addJavaScriptChannel(
+      'ContentHeight',
+      onMessageReceived: (JavaScriptMessage msg) {
+        final h = double.tryParse(msg.message);
+        if (h == null) return;
+        final clamped = h.clamp(_minHeight, _maxHeight);
+        if ((clamped - _contentHeight).abs() < 1) return;
+        if (!mounted) return;
+        setState(() => _contentHeight = clamped);
+      },
+    );
+    await c.loadRequest(uri);
     if (mounted) setState(() => _controller = c);
   }
 
@@ -50,7 +76,7 @@ class _WebViewBlockState extends State<WebViewBlock> {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      height: 320,
+      height: _contentHeight,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
@@ -65,69 +91,71 @@ class _WebViewBlockState extends State<WebViewBlock> {
   }
 }
 
-/// Holds the paths to the copied viewer assets.
-class _ViewerAssets {
-  final String indexPath;
-  _ViewerAssets(this.indexPath);
-}
+/// App-scoped local HTTP server. Bound to `127.0.0.1` on an ephemeral
+/// port; serves the same fully-inlined viewer HTML for every path.
+/// Each [WebViewBlock] reads its own data from the URL fragment.
+class _ViewerServer {
+  _ViewerServer._();
+  static final _ViewerServer instance = _ViewerServer._();
 
-/// Copies every file under `assets/viewer/` (including the `fonts/`
-/// subdirectory used by KaTeX) into a subdirectory of the app's
-/// temp directory and returns an object holding the absolute path of
-/// `viewer.html`. Idempotent: repeated calls return the same path.
-Future<_ViewerAssets> _copyViewerToTemp() async {
-  const assetDir = 'assets/viewer';
-  final tempRoot = await getTemporaryDirectory();
-  final target = Directory('${tempRoot.path}/md_preview_viewer');
-  if (!await target.exists()) await target.create(recursive: true);
+  HttpServer? _server;
+  String? _bundledHtml;
+  int? _port;
+  Future<int>? _starting;
 
-  // Bundled file names. Keep in sync with the vendored assets.
-  const files = [
-    'viewer.html',
-    'viewer.css',
-    'marked.min.js',
-    'highlight.min.js',
-    'mermaid.min.js',
-    'katex.min.js',
-    'katex.min.css',
-  ];
-  for (final name in files) {
-    final bytes = await rootBundle.load('$assetDir/$name');
-    final out = File('${target.path}/$name');
-    await out.writeAsBytes(bytes.buffer.asUint8List());
+  Future<int> start() {
+    if (_port != null) return Future.value(_port);
+    return _starting ??= _doStart();
   }
 
-  // KaTeX fonts (referenced by katex.min.css as `fonts/KaTeX_*.woff2`).
-  final fontsDir = Directory('${target.path}/fonts');
-  if (!await fontsDir.exists()) await fontsDir.create(recursive: true);
-  // List assets in `assets/viewer/fonts/` via AssetBundle so the set is
-  // data-driven rather than hard-coded.
-  final bundle = rootBundle;
-  final fontNames = <String>[];
-  for (final name in const [
-    'KaTeX_AMS-Regular',
-    'KaTeX_Caligraphic-Bold',
-    'KaTeX_Caligraphic-Regular',
-    'KaTeX_Fraktur-Bold',
-    'KaTeX_Fraktur-Regular',
-    'KaTeX_Main-Bold',
-    'KaTeX_Main-BoldItalic',
-    'KaTeX_Main-Italic',
-    'KaTeX_Main-Regular',
-    'KaTeX_Math-BoldItalic',
-    'KaTeX_Math-Italic',
-    'KaTeX_SansSerif-Bold',
-    'KaTeX_SansSerif-Italic',
-    'KaTeX_SansSerif-Regular',
-    'KaTeX_Script-Regular',
-    'KaTeX_Typewriter-Regular',
-  ]) {
-    fontNames.add('$name.woff2');
+  Future<int> _doStart() async {
+    debugPrint('[ViewerServer] building bundled HTML...');
+    final html = await _buildBundledHtml();
+    _bundledHtml = html;
+    debugPrint('[ViewerServer] bundled HTML: ${html.length} bytes');
+    debugPrint('[ViewerServer] binding to 127.0.0.1:0...');
+    _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    _port = _server!.port;
+    debugPrint('[ViewerServer] listening on http://127.0.0.1:$_port/');
+    _server!.listen(_handle);
+    return _port!;
   }
-  for (final name in fontNames) {
-    final bytes = await bundle.load('$assetDir/fonts/$name');
-    final out = File('${target.path}/fonts/$name');
-    await out.writeAsBytes(bytes.buffer.asUint8List());
+
+  Future<void> _handle(HttpRequest req) async {
+    try {
+      req.response.headers.contentType = ContentType('text', 'html', charset: 'utf-8');
+      req.response.write(_bundledHtml);
+    } finally {
+      await req.response.close();
+    }
   }
-  return _ViewerAssets('${target.path}/viewer.html');
+
+  Future<String> _buildBundledHtml() async {
+    const assetDir = 'assets/viewer';
+    final viewerHtml = await rootBundle.loadString('$assetDir/viewer.html');
+    final markedJs = await rootBundle.loadString('$assetDir/marked.min.js');
+    final highlightJs = await rootBundle.loadString('$assetDir/highlight.min.js');
+    final mermaidJs = await rootBundle.loadString('$assetDir/mermaid.min.js');
+    final katexJs = await rootBundle.loadString('$assetDir/katex.min.js');
+
+    String inlineLib(String code) => '<script>$code</script>';
+
+    return viewerHtml
+        .replaceFirst(
+          '<script src="marked.min.js"></script>',
+          inlineLib(markedJs),
+        )
+        .replaceFirst(
+          '<script src="highlight.min.js"></script>',
+          inlineLib(highlightJs),
+        )
+        .replaceFirst(
+          '<script src="mermaid.min.js"></script>',
+          inlineLib(mermaidJs),
+        )
+        .replaceFirst(
+          '<script src="katex.min.js"></script>',
+          inlineLib(katexJs),
+        );
+  }
 }

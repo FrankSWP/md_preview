@@ -4,8 +4,30 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MD Preview Viewer</title>
-  <link rel="stylesheet" href="katex.min.css" />
-  <link rel="stylesheet" href="viewer.css" />
+  <style>
+    html, body { margin: 0; padding: 0; }
+    body {
+      padding: 12px;
+      background: #ffffff;
+      color: #1f2328;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    body.dark { background: #0d1117; color: #e6edf3; }
+    /* Mermaid SVG should fit the container width and stay scrollable
+       vertically when taller than the viewport. */
+    #content { max-width: 100%; overflow: auto; }
+    #content svg { max-width: 100% !important; height: auto !important; display: block; margin: 0 auto; }
+    pre { margin: 0; font-family: inherit; }
+    /* KaTeX display-mode equations can be wide; let them scroll horizontally. */
+    .katex-display { overflow-x: auto; overflow-y: hidden; }
+    /* KaTeX outputs a MathML element as an accessibility fallback. We
+       don't ship katex.min.css (file:// cross-origin restriction), so
+       we hide it explicitly. Display:none (rather than position+clip)
+       keeps the rendered HTML element unaffected. */
+    .katex-mathml, .katex-mathml * { display: none !important; }
+  </style>
 </head>
 <body>
   <div id="content"></div>
@@ -14,15 +36,18 @@
   <script src="mermaid.min.js"></script>
   <script src="katex.min.js"></script>
   <script>
-    // Read the language + code from the URL fragment.
-    // Format: #lang=<urlencoded lang>&code=<urlencoded code>
     function parseFragment() {
-      const frag = decodeURIComponent(location.hash.slice(1));
+      // Split on `&` BEFORE decoding so that `%26` inside an
+      // encoded value isn't treated as a parameter separator.
       const out = {};
-      frag.split('&').forEach(p => {
+      location.hash.slice(1).split('&').forEach(p => {
         const i = p.indexOf('=');
         if (i < 0) return;
-        out[p.slice(0, i)] = decodeURIComponent(p.slice(i + 1));
+        const key = decodeURIComponent(p.slice(0, i));
+        // A value may itself contain `=` (e.g. `\frac{1}{2}` is fine,
+        // but be safe and rejoin everything after the first `=`).
+        const value = decodeURIComponent(p.slice(i + 1));
+        out[key] = value;
       });
       return out;
     }
@@ -31,19 +56,48 @@
     const dark = matchMedia('(prefers-color-scheme: dark)').matches;
     document.body.classList.toggle('dark', dark);
 
-    if (lang === 'mermaid') {
-      const pre = document.createElement('pre');
-      pre.className = 'mermaid';
-      pre.textContent = code;
-      target.appendChild(pre);
-      mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default' });
-    } else {
-      // math
-      target.innerHTML = katex.renderToString(code, {
-        displayMode: true,
-        throwOnError: false,
-      });
-    }
+    console.log('[viewer] page loaded lang=' + lang + ' code.length=' + (code || '').length);
+    console.log('[viewer] libs: marked=' + (typeof marked) + ' highlight=' + (typeof hljs) + ' mermaid=' + (typeof mermaid) + ' katex=' + (typeof katex));
+
+    (async function() {
+      try {
+        if (lang === 'mermaid') {
+          if (typeof mermaid === 'undefined') {
+            target.innerHTML = '<p style="color:red">[debug] mermaid library NOT loaded</p>';
+            return;
+          }
+          if (!window._mermaidInit) {
+            mermaid.initialize({
+              startOnLoad: false,
+              theme: dark ? 'dark' : 'default',
+              useMaxWidth: true,
+              securityLevel: 'loose',
+            });
+            window._mermaidInit = true;
+          }
+          const id = 'mermaid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+          const { svg } = await mermaid.render(id, code);
+          target.innerHTML = svg;
+          console.log('[viewer] mermaid.render() done');
+        } else {
+          if (typeof katex === 'undefined') {
+            target.innerHTML = '<p style="color:red">[debug] katex library NOT loaded</p>';
+            return;
+          }
+          target.innerHTML = katex.renderToString(code, {
+            displayMode: true,
+            throwOnError: false,
+          });
+          console.log('[viewer] katex.renderToString() done');
+        }
+      } catch (err) {
+        console.log('[viewer] EXCEPTION: ' + err.message);
+        target.innerHTML = '<p style="color:red">[debug] exception: ' + (err.message || err) + '</p>';
+      }
+      if (window.ContentHeight) {
+        window.ContentHeight.postMessage(document.body.scrollHeight);
+      }
+    })();
   </script>
 </body>
 </html>
