@@ -171,13 +171,15 @@ class _ViewerServer {
       }
     }
 
-    // Replace each url(fonts/<name>.woff2) with the corresponding data: URL.
+    // Replace each url(fonts/<name>.{woff2,woff,ttf}) with the corresponding data: URL.
+    // Browsers ignore the format hint and use the URL regardless, so replacing
+    // all three formats is safe and eliminates 404 noise for the 16 bundled fonts.
     var patchedCss = katexCss;
     for (final entry in fontDataMap.entries) {
-      patchedCss = patchedCss.replaceAll(
-        'url(fonts/${entry.key}.woff2)',
-        entry.value,
-      );
+      patchedCss = patchedCss
+          .replaceAll('url(fonts/${entry.key}.woff2)', entry.value)
+          .replaceAll('url(fonts/${entry.key}.woff)', entry.value)
+          .replaceAll('url(fonts/${entry.key}.ttf)', entry.value);
     }
 
     String inlineLib(String code) => '<script>$code</script>';

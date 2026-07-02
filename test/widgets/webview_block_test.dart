@@ -78,7 +78,10 @@ void main() {
       final assetKey = '$assetDir/fonts/$name.woff2';
       final bytes = await rootBundle.load(assetKey);
       final dataUrl = 'data:font/woff2;base64,${base64Encode(bytes.buffer.asUint8List())}';
-      patchedCss = patchedCss.replaceAll('url(fonts/$name.woff2)', dataUrl);
+      patchedCss = patchedCss
+        .replaceAll('url(fonts/$name.woff2)', dataUrl)
+        .replaceAll('url(fonts/$name.woff)', dataUrl)
+        .replaceAll('url(fonts/$name.ttf)', dataUrl);
     }
 
     final bundled = viewerHtml.replaceFirst('__KATEX_CSS__', patchedCss);
@@ -94,15 +97,13 @@ void main() {
     }
 
     // Count remaining url(fonts/) references. The CSS uses 3 formats
-    // per font (woff2/woff/ttf = 60 total). Our patch only replaces
-    // woff2 URLs for the 16 vendored fonts (16 woff2 patched), so
-    // 60 - 16 = 44 url(fonts/) refs remain (12 for Size1-4 × 3 formats,
-    // plus 32 for woff/ttf fallbacks for the 16 vendored fonts that
-    // browsers will never fetch on Android).
+    // per font (woff2/woff/ttf = 60 total). We replace all 3 formats
+    // for the 16 vendored fonts (48 patched), so only the 4 missing
+    // fonts (Size1-4) remain with 3 formats each = 12 url(fonts/) refs.
     final urlFontCount = RegExp(r'url\(fonts/').allMatches(bundled).length;
-    expect(urlFontCount, equals(44),
-        reason: 'Expected 44 remaining url(fonts/) refs '
-            '(60 total - 16 vendored woff2 replaced), got $urlFontCount',);
+    expect(urlFontCount, equals(12),
+        reason: 'Expected 12 remaining url(fonts/) refs '
+            '(4 missing fonts × 3 formats), got $urlFontCount',);
   });
 
   test('__KATEX_CSS__ placeholder is replaced in final HTML', () async {
@@ -145,11 +146,17 @@ void main() {
       final assetKey = '$assetDir/fonts/$name.woff2';
       final bytes = await rootBundle.load(assetKey);
       final dataUrl = 'data:font/woff2;base64,${base64Encode(bytes.buffer.asUint8List())}';
-      patchedCss = patchedCss.replaceAll('url(fonts/$name.woff2)', dataUrl);
+      patchedCss = patchedCss
+          .replaceAll('url(fonts/$name.woff2)', dataUrl)
+          .replaceAll('url(fonts/$name.woff)', dataUrl)
+          .replaceAll('url(fonts/$name.ttf)', dataUrl);
     }
 
     final afterCount = RegExp(r'url\(fonts/').allMatches(patchedCss).length;
-    // After patching, only the 4 missing fonts (Size1-4) still have url(fonts/)
-    expect(afterCount, lessThan(beforeCount), reason: 'url(fonts/) count should decrease after patching');
+    // After patching all 3 formats, only the 4 missing fonts (Size1-4)
+    // remain with 3 formats each = 12 url(fonts/) refs.
+    expect(afterCount, equals(12),
+        reason: 'Expected exactly 12 remaining url(fonts/) refs '
+            '(4 missing fonts × 3 formats), got $afterCount');
   });
 }
