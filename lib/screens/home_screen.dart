@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
-import 'package:md_preview/utils/relative_time.dart';
+import 'package:md_preview/widgets/recent_file_card.dart';
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onOpenFile;
@@ -117,7 +117,7 @@ class _RecentFilesSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...displayFiles.map((file) => _RecentFileCard(
+            ...displayFiles.map((file) => RecentFileCard(
                   file: file,
                   onTap: () async {
                     await recents.add(path: file.path, name: file.name);
@@ -163,36 +163,3 @@ class _RecentFilesSection extends StatelessWidget {
   }
 }
 
-class _RecentFileCard extends StatelessWidget {
-  final RecentFile file;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  const _RecentFileCard({
-    required this.file,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = '${file.parentDir ?? "从分享接收"} · ${formatRelativeTime(file.lastOpenedAt)}';
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.description_outlined),
-      title: Text(
-        file.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        subtitle,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      onTap: onTap,
-      onLongPress: onLongPress,
-    );
-  }
-}
