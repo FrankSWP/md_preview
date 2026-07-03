@@ -9,6 +9,11 @@ import 'package:md_preview/widgets/webview_block.dart';
 /// same baseline as the surrounding text.
 const double _inlineMathHeight = 36.0;
 
+/// Maximum width of an inline math WebView. Wider formulas (e.g.
+/// $\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$) would otherwise be clipped to
+/// 36px and become unreadable.
+const double _inlineMathMaxWidth = 320.0;
+
 class MarkdownView extends StatelessWidget {
   final String source;
   final double fontSize;
@@ -156,17 +161,20 @@ class _InlineMathViewState extends State<_InlineMathView> {
   Widget build(BuildContext context) {
     return Container(
       height: _inlineMathHeight,
-      constraints: const BoxConstraints(
-        minHeight: _inlineMathHeight,
-        maxHeight: _inlineMathHeight,
-      ),
+      constraints: const BoxConstraints.tightFor(height: _inlineMathHeight),
       margin: const EdgeInsets.symmetric(horizontal: 2),
       child: _controller == null
-          ? const SizedBox(width: _inlineMathHeight, height: _inlineMathHeight)
-          : SizedBox(
+          ? const SizedBox(
               width: _inlineMathHeight,
               height: _inlineMathHeight,
-              child: WebViewWidget(controller: _controller!),
+            )
+          : SizedBox(
+              width: _inlineMathMaxWidth,
+              height: _inlineMathHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: WebViewWidget(controller: _controller!),
+              ),
             ),
     );
   }
