@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/utils/relative_time.dart';
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onOpenFile;
-  const HomeScreen({super.key, required this.onOpenFile});
+  final VoidCallback? onViewAllRecents;
+  final RecentFilesRepository? recents;
+
+  const HomeScreen({
+    super.key,
+    required this.onOpenFile,
+    this.onViewAllRecents,
+    this.recents,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MD Preview'),
+        title: const Text('Markdown 预览'),
         actions: [
           IconButton(
-            tooltip: 'Settings',
+            tooltip: '设置',
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).pushNamed('/settings'),
           ),
@@ -30,24 +40,148 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'No file opened',
+                'Markdown 预览',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               const Text(
-                'Open a .md file from your file manager, or use the button below.',
+                '从文件管理器打开 .md 文件,或点击下方按钮',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: onOpenFile,
                 icon: const Icon(Icons.folder_open_outlined),
-                label: const Text('Open Markdown file'),
+                label: const Text('打开 Markdown 文件'),
               ),
+              if (recents != null) ...[
+                const SizedBox(height: 32),
+                _RecentFilesSection(
+                  recents: recents!,
+                  onOpenFile: onOpenFile,
+                  onViewAll: onViewAllRecents,
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RecentFilesSection extends StatelessWidget {
+  final RecentFilesRepository recents;
+  final VoidCallback onOpenFile;
+  final VoidCallback? onViewAll;
+
+  const _RecentFilesSection({
+    required this.recents,
+    required this.onOpenFile,
+    this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<RecentFile>>(
+      stream: recents.changes,
+      initialData: recents.recent(),
+      builder: (context, snapshot) {
+        final files = snapshot.data ?? [];
+        if (files.isEmpty) return const SizedBox.shrink();
+
+        final displayFiles = files.take(3).toList();
+        final hasMore = files.length > 3;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              '最近文件',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...displayFiles.map((file) => _RecentFileCard(
+                  file: file,
+                  onTap: () async {
+                    await recents.add(path: file.path, name: file.name);
+                    onOpenFile();
+                  },
+                  onLongPress: () async {
+                    final name = file.name;
+                    final path = file.path;
+                    await recents.remove(path);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('已从最近文件中移除'),
+                          action: SnackBarAction(
+                            label: '撤销',
+                            onPressed: () async {
+                              await recents.add(path: path, name: name);
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                )),
+            if (hasMore && onViewAll != null) ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: onViewAll,
+                child: const Text(
+                  '查看全部 →',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RecentFileCard extends StatelessWidget {
+  final RecentFile file;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _RecentFileCard({
+    required this.file,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = '${file.parentDir ?? "从分享接收"} · ${formatRelativeTime(file.lastOpenedAt)}';
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.description_outlined),
+      title: Text(
+        file.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        subtitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onTap: onTap,
+      onLongPress: onLongPress,
     );
   }
 }
