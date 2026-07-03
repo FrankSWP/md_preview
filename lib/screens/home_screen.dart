@@ -28,41 +28,44 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.description_outlined,
-                size: 96,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Markdown 预览',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '从文件管理器打开 .md 文件,或点击下方按钮',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: onOpenFile,
-                icon: const Icon(Icons.folder_open_outlined),
-                label: const Text('打开 Markdown 文件'),
-              ),
-              if (recents != null) ...[
-                const SizedBox(height: 32),
-                _RecentFilesSection(
-                  recents: recents!,
-                  onOpenFile: onOpenFile,
-                  onViewAll: onViewAllRecents,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.description_outlined,
+                  size: 96,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  'Markdown 预览',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '从文件管理器打开 .md 文件,或点击下方按钮',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: onOpenFile,
+                  icon: const Icon(Icons.folder_open_outlined),
+                  label: const Text('打开 Markdown 文件'),
+                ),
+                if (recents != null) ...[
+                  const SizedBox(height: 32),
+                  _RecentFilesSection(
+                    recents: recents!,
+                    onOpenFile: onOpenFile,
+                    onViewAll: onViewAllRecents,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -131,7 +134,8 @@ class _RecentFilesSection extends StatelessWidget {
                       );
                     }
                   },
-                )),
+                ),),
+
             if (hasMore && onViewAll != null) ...[
               const SizedBox(height: 8),
               GestureDetector(

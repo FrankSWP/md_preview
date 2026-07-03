@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:md_preview/screens/home_screen.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
-import 'package:md_preview/utils/relative_time.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -15,7 +14,7 @@ void main() {
   // -------------------------------------------------------------------------
   // Helper: build HomeScreen with optional repo
   // -------------------------------------------------------------------------
-  Future<RecentFilesRepository> _buildRepo() async {
+  Future<RecentFilesRepository> buildRepo() async {
     final prefs = await SharedPreferences.getInstance();
     return RecentFilesRepository(prefs: prefs);
   }
@@ -85,7 +84,7 @@ void main() {
   });
 
   testWidgets('with empty recents: no 最近文件 header', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
     await tester.pumpAndSettle();
     expect(find.text('最近文件'), findsNothing);
@@ -96,7 +95,7 @@ void main() {
   // -------------------------------------------------------------------------
 
   testWidgets('with 2 recent entries: both filenames are shown', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
     await repo.add(path: '/storage/api.md', name: 'API设计.md');
 
@@ -108,7 +107,7 @@ void main() {
   });
 
   testWidgets('with 5 recent entries: only first 3 are shown', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     for (final name in [
       'a.md', 'b.md', 'c.md', 'd.md', 'e.md',
     ]) {
@@ -126,7 +125,7 @@ void main() {
   });
 
   testWidgets('with 5 recent entries: 查看全部 link is shown', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     for (final name in ['a.md', 'b.md', 'c.md', 'd.md', 'e.md']) {
       await repo.add(path: '/storage/$name', name: name);
     }
@@ -138,7 +137,7 @@ void main() {
   });
 
   testWidgets('with 2 recent entries: 查看全部 link is NOT shown', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     await repo.add(path: '/storage/a.md', name: 'a.md');
     await repo.add(path: '/storage/b.md', name: 'b.md');
 
@@ -153,7 +152,7 @@ void main() {
   // -------------------------------------------------------------------------
 
   testWidgets('tapping a recent file card calls onOpenFile', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
     var opened = false;
@@ -170,7 +169,7 @@ void main() {
   // -------------------------------------------------------------------------
 
   testWidgets('long-pressing a recent card removes it and shows snackbar', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
     await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
@@ -191,7 +190,7 @@ void main() {
   // -------------------------------------------------------------------------
 
   testWidgets('content:// recents show 从分享接收 instead of parent dir', (tester) async {
-    final repo = await _buildRepo();
+    final repo = await buildRepo();
     await repo.add(path: 'content://com.example.app/file/123', name: 'shared.md');
 
     await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
