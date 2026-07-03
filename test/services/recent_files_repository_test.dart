@@ -187,10 +187,6 @@ void main() {
       expect(recent.first.path, '/valid.md');
     });
 
-    test('13. formatRelativeTime buckets covered by time helper tests', () async {
-      // This is covered by relative_time_test.dart
-      // Keeping as placeholder for test index alignment
-      expect(true, isTrue);
-    });
+    // formatRelativeTime coverage lives in test/utils/relative_time_test.dart
   });
 }

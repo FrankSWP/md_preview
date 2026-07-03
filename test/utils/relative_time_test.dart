@@ -63,6 +63,16 @@ void main() {
       expect(formatRelativeTime(then, now: now), '1 周前');
     });
 
+    test('X 周前 for 13-14 days ago rounds to 2 weeks', () {
+      final now = DateTime.utc(2026, 7, 3, 12, 0, 0);
+      // 13 days ago — should round to 2 weeks, not floor to 1
+      final thirteenDaysAgo = DateTime.utc(2026, 6, 20, 12, 0, 0);
+      expect(formatRelativeTime(thirteenDaysAgo, now: now), '2 周前');
+      // 14 days ago — exactly 2 weeks
+      final fourteenDaysAgo = DateTime.utc(2026, 6, 19, 12, 0, 0);
+      expect(formatRelativeTime(fourteenDaysAgo, now: now), '2 周前');
+    });
+
     test('X 周前 for 3 weeks ago', () {
       final now = DateTime.utc(2026, 7, 3, 12, 0, 0);
       final then = DateTime.utc(2026, 6, 12, 12, 0, 0);

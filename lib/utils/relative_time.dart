@@ -21,7 +21,7 @@ String formatRelativeTime(DateTime utc, {DateTime? now}) {
     return '${diff.inDays} 天前';
   }
   if (diff.inDays < 30) {
-    final weeks = (diff.inDays / 7).floor();
+    final weeks = (diff.inDays / 7).round();
     return '$weeks 周前';
   }
 
