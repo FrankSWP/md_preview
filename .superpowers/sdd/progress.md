@@ -53,6 +53,40 @@ Repository: **https://github.com/FrankSWP/md_preview**
   - New `LICENSE`, real `README.md`, expanded `CHANGELOG.md`
   - Removed `test_bugs/` and the device-screenshot from tracking; both in `.gitignore`
 
+## Platform-isolation spec (2026-07-03, deferred)
+
+Brainstorming session agreed on an iOS adaptation + platform-isolation refactor. Spec at `docs/superpowers/specs/2026-07-03-platform-isolation-design.md` (commit `440b2ff`).
+
+Key decisions:
+
+- iOS and Android code split via **two entry points** (`lib/main.dart` Android, `lib/main_ios.dart` iOS) — iOS files unreachable from the Android compiler.
+- Layered structure: `core / platform / platform_android / platform_ios / features / app`.
+- iOS scope: end-to-end file open (Share Extension + App Group), Cupertino styling, iPad master-detail.
+- **HarmonyOS / OpenHarmony explicitly out of scope** — Flutter OHOS is not GA, all our plugins lack OHOS implementations.
+- **v2 (editor) + v3 (export PDF, export image)** reserved as `features/<name>/.gitkeep` placeholders.
+- Android build must continue to pass at every refactor step (zero-regression acceptance test).
+
+**Status:** deferred — the user is doing a v1 optimization first. Implementation begins when the user signals they're ready.
+
+## Version tags for rollback
+
+| Tag | Commit | Use |
+|---|---|---|
+| `v0.1.0` | `c60dfb8` (post-cleanup) | First public release. Read-only archive. |
+| `v0.1.0-mvp` | `21c7233` | Pre-cleanup MVP release notes. |
+| `main` HEAD | `440b2ff` | Currently equals `v0.1.0` + spec doc. |
+
+To check out a specific version:
+
+```bash
+git fetch --all --tags
+git checkout v0.1.0    # ← the "first version" before any refactor
+flutter pub get
+flutter run
+```
+
+After the optimization is tagged, `v0.1.1` (or whatever) will be added. After the platform-isolation refactor lands, `v2.0.0` will be added.
+
 ## Environment
 
 - Branch: `feat/md-preview` (off `main` @ `2dd7e54`)
