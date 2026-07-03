@@ -43,3 +43,7 @@ ios/Runner.xcodeproj/xcuserdata/
 *.swp
 *.swo
 *~
+
+# Internal debug / test artifacts (not for repo)
+test_bugs/
+test_samples/*.jpg
