@@ -117,11 +117,11 @@ void main() {
     await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('a.md'), findsOneWidget);
-    expect(find.text('b.md'), findsOneWidget);
+    expect(find.text('e.md'), findsOneWidget);
+    expect(find.text('d.md'), findsOneWidget);
     expect(find.text('c.md'), findsOneWidget);
-    expect(find.text('d.md'), findsNothing);
-    expect(find.text('e.md'), findsNothing);
+    expect(find.text('a.md'), findsNothing);
+    expect(find.text('b.md'), findsNothing);
   });
 
   testWidgets('with 5 recent entries: 查看全部 link is shown', (tester) async {
@@ -130,7 +130,7 @@ void main() {
       await repo.add(path: '/storage/$name', name: name);
     }
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
+    await tester.pumpWidget(buildHome(onOpenFile: () {}, onViewAllRecents: () {}, recents: repo));
     await tester.pumpAndSettle();
 
     expect(find.text('查看全部 →'), findsOneWidget);
