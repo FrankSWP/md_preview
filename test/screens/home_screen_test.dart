@@ -163,7 +163,7 @@ void main() {
       onOpenFile: () => pickerOpened = true,
       recents: repo,
       onOpenRecent: (file) => openedFile = file,
-    ));
+    ),);
     await tester.pumpAndSettle();
 
     // tap the card
@@ -189,7 +189,7 @@ void main() {
       onOpenFile: () => pickerOpened = true,
       recents: repo,
       onOpenRecent: null, // explicitly null
-    ));
+    ),);
     await tester.pumpAndSettle();
 
     // tap the card — should not crash and should not call onOpenFile
