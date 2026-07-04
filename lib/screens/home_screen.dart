@@ -6,12 +6,14 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onOpenFile;
   final VoidCallback? onViewAllRecents;
   final RecentFilesRepository? recents;
+  final ValueChanged<RecentFile>? onOpenRecent;
 
   const HomeScreen({
     super.key,
     required this.onOpenFile,
     this.onViewAllRecents,
     this.recents,
+    this.onOpenRecent,
   });
 
   @override
@@ -66,6 +68,7 @@ class HomeScreen extends StatelessWidget {
                           recents: recents!,
                           onOpenFile: onOpenFile,
                           onViewAll: onViewAllRecents,
+                          onOpenRecent: onOpenRecent,
                         ),
                       ],
                     ],
@@ -84,11 +87,13 @@ class _RecentFilesSection extends StatelessWidget {
   final RecentFilesRepository recents;
   final VoidCallback onOpenFile;
   final VoidCallback? onViewAll;
+  final ValueChanged<RecentFile>? onOpenRecent;
 
   const _RecentFilesSection({
     required this.recents,
     required this.onOpenFile,
     this.onViewAll,
+    this.onOpenRecent,
   });
 
   @override
@@ -119,10 +124,9 @@ class _RecentFilesSection extends StatelessWidget {
             const SizedBox(height: 8),
             ...displayFiles.map((file) => RecentFileCard(
                   file: file,
-                  onTap: () async {
-                    await recents.add(path: file.path, name: file.name);
-                    onOpenFile();
-                  },
+                  onTap: onOpenRecent != null
+                      ? () => onOpenRecent!(file)
+                      : null,
                   onLongPress: () async {
                     final name = file.name;
                     final path = file.path;

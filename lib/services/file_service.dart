@@ -9,6 +9,8 @@
 /// `dart:io`.
 library;
 
+import 'dart:io';
+
 sealed class FileLoadResult {
   const FileLoadResult();
 }
@@ -22,6 +24,11 @@ class Ok extends FileLoadResult {
 class Error extends FileLoadResult {
   final String reason;
   const Error(this.reason);
+}
+
+class Missing extends FileLoadResult {
+  final String path;
+  const Missing(this.path);
 }
 
 typedef FileReader = Future<String> Function(String uri);
@@ -40,6 +47,47 @@ class FileService {
       return Ok(content, name);
     } catch (e) {
       return Error('Failed to read $uriString: $e');
+    }
+  }
+
+  Future<FileLoadResult> loadFromPath(String path) async {
+    // 1. If path is content:// — can't pre-check existence. Try to read; if
+    //    reader throws, return Missing(path).
+    if (path.startsWith('content://')) {
+      try {
+        final content = await reader(path);
+        final name = _basename(path);
+        return Ok(content, name);
+      } catch (_) {
+        return Missing(path);
+      }
+    }
+
+    // 2. If path is file:// or plain — strip scheme, check File().exists().
+    final stripped = path.startsWith('file://')
+        ? path.substring('file://'.length)
+        : path;
+
+    // ignore: avoid_slow_async_io — this is intentional existence check
+    final exists = await _exists(stripped);
+    if (!exists) {
+      return Missing(stripped);
+    }
+
+    try {
+      final content = await reader(stripped);
+      final name = _basename(stripped);
+      return Ok(content, name);
+    } catch (e) {
+      return Error('Failed to read $path: $e');
+    }
+  }
+
+  Future<bool> _exists(String path) async {
+    try {
+      return await File(path).exists();
+    } catch (_) {
+      return false;
     }
   }
 

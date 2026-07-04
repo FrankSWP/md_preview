@@ -23,12 +23,14 @@ void main() {
     required VoidCallback onOpenFile,
     VoidCallback? onViewAllRecents,
     RecentFilesRepository? recents,
+    ValueChanged<RecentFile>? onOpenRecent,
   }) {
     return MaterialApp(
       home: HomeScreen(
         onOpenFile: onOpenFile,
         onViewAllRecents: onViewAllRecents,
         recents: recents,
+        onOpenRecent: onOpenRecent,
       ),
       routes: {
         '/settings': (_) => const Scaffold(body: Text('settings-stub')),
@@ -148,24 +150,57 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Test 13: tap recent card calls onOpenFile
+  // Test 13: tap recent card calls onOpenRecent (NOT onOpenFile)
   // -------------------------------------------------------------------------
 
-  testWidgets('tapping a recent file card calls onOpenFile', (tester) async {
+  testWidgets('tapping a recent file card calls onOpenRecent (NOT onOpenFile)', (tester) async {
     final repo = await buildRepo();
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
-    var opened = false;
-    await tester.pumpWidget(buildHome(onOpenFile: () => opened = true, recents: repo));
+    RecentFile? openedFile;
+    var pickerOpened = false;
+    await tester.pumpWidget(buildHome(
+      onOpenFile: () => pickerOpened = true,
+      recents: repo,
+      onOpenRecent: (file) => openedFile = file,
+    ));
     await tester.pumpAndSettle();
 
-    // tap the ListTile
+    // tap the card
     await tester.tap(find.text('notes.md'));
-    expect(opened, isTrue);
+    await tester.pumpAndSettle();
+
+    // Should call onOpenRecent, NOT onOpenFile
+    expect(openedFile?.name, equals('notes.md'));
+    expect(openedFile?.path, equals('/storage/notes.md'));
+    expect(pickerOpened, isFalse);
   });
 
   // -------------------------------------------------------------------------
-  // Test 14: long-press removes and shows snackbar
+  // Test 14: when onOpenRecent is null, tapping a card does nothing
+  // -------------------------------------------------------------------------
+
+  testWidgets('when onOpenRecent is null, tapping a card does nothing (no crash)', (tester) async {
+    final repo = await buildRepo();
+    await repo.add(path: '/storage/notes.md', name: 'notes.md');
+
+    var pickerOpened = false;
+    await tester.pumpWidget(buildHome(
+      onOpenFile: () => pickerOpened = true,
+      recents: repo,
+      onOpenRecent: null, // explicitly null
+    ));
+    await tester.pumpAndSettle();
+
+    // tap the card — should not crash and should not call onOpenFile
+    await tester.tap(find.text('notes.md'));
+    await tester.pumpAndSettle();
+
+    expect(pickerOpened, isFalse);
+  });
+
+  // -------------------------------------------------------------------------
+  // Test 15: long-press removes and shows snackbar
   // -------------------------------------------------------------------------
 
   testWidgets('long-pressing a recent card removes it and shows snackbar', (tester) async {
@@ -186,7 +221,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Test 15: content:// shows 从分享接收
+  // Test 16: content:// shows 从分享接收
   // -------------------------------------------------------------------------
 
   testWidgets('content:// recents show 从分享接收 instead of parent dir', (tester) async {
