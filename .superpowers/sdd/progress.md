@@ -41,6 +41,29 @@ Baseline: `5d870365fbe273dd76fc5d5bc32e58ddbe2681c0`
 | 16 | Inline KaTeX CSS + Fonts | ✅ | `0a84032..ecbbb0d` | approved (after fix: also patch woff/ttf refs) |
 | 17 | Inline `$...$` math support | ✅ | `56780af..39bfbaa` | approved (with minor notes) |
 
+## v0.2.0 — Recent files (2026-07-04)
+
+Repository: https://github.com/FrankSWP/md_preview
+
+- Tag: v0.2.0 (annotated)
+- Branch: `feat/recent-files` merged into main
+- Tasks 18-21: RecentFilesRepository + HomeScreen redesign +
+  FullRecentListScreen + app.dart wiring
+- 109/109 tests passing, lint clean on new code, APK builds
+- v0.1.0 still reachable via `git checkout v0.1.0`
+
+### Commits
+
+- 025d4a3 feat: RecentFilesRepository + formatRelativeTime helper
+- 51359d5 fix(recent): round week boundary + drop placeholder test
+- b9c4aa5 feat(home): Chinese UI + recent files section
+- baab48d fix(home): layout overflow + lint issues
+- eb1ec7d fix Task 19: center-when-fits layout + test 11 expectations
+- 759595c Task 20: FullRecentListScreen + extracted RecentFileCard widget
+- 5923ba9 Task 21: app.dart wiring + tap-to-open + missing-file dialog
+- 0157bb4 fix(tests): add trailing commas to home_screen_test.dart
+- (Task 22 commits)
+
 ## GitHub release (2026-07-03)
 
 Repository: **https://github.com/FrankSWP/md_preview**

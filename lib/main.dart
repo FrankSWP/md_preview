@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:md_preview/app.dart';
 import 'package:md_preview/services/file_service.dart';
 import 'package:md_preview/services/intent_handler.dart';
+import 'package:md_preview/services/recent_files_repository.dart';
 import 'package:md_preview/services/settings_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uri_content/uri_content.dart';
 
 /// Injected into [FileService]. The path may be:
@@ -28,11 +30,17 @@ void main() {
 }
 
 Future<void> _bootstrap() async {
+  final prefs = await SharedPreferences.getInstance();
+  final recents = RecentFilesRepository(prefs: prefs);
   final settings = await SettingsService.create();
   // FileReader is a function, not a const — cannot use const constructor
   // ignore: prefer_const_constructors
   final fileService = FileService(reader: _readFromPath);
-  final app = MdPreviewApp(settings: settings, fileService: fileService);
+  final app = MdPreviewApp(
+    settings: settings,
+    fileService: fileService,
+    recents: recents,
+  );
   runApp(app);
 
   // Cold-start: the app may have been launched from an "Open with"
@@ -41,7 +49,7 @@ Future<void> _bootstrap() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     intents.sharedFileUris.listen((uri) async {
       final loaded = await fileService.loadFromUri(uri);
-      await app.pushLoaded(loaded);
+      await MdPreviewApp.pushLoaded(loaded);
     });
   });
 }

@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-07-04
+
+### Added
+
+- **HomeScreen redesigned** — fully Chinese UI. The home page now shows:
+  - A large centered icon, title, and "打开 Markdown 文件" button (instead of the English-only placeholder)
+  - A "最近文件" section listing the 3 most recently opened Markdown files
+  - A "查看全部 →" link to a full list of all recent files (up to 50)
+- **Recent files persistence** — every Markdown file you open is recorded
+  in `SharedPreferences` (key `recent_files`, JSON list, FIFO at 50). The
+  list is sorted by `lastOpenedAt` descending, so the most recent file is
+  always at the top.
+- **Full recent list screen** — `/recents` route. Shows all 50 entries,
+  with a "清空" action that confirms before clearing.
+- **Tap to re-open** — tapping a recent file loads it directly, no picker.
+  This is the new behavior in v0.2.0; v0.1.0's "tap a card re-opens the
+  picker" has been removed.
+- **Missing-file handling** — if a recent file no longer exists at its
+  recorded path, a dialog offers "移除" (remove from recents) or "取消"
+  (keep it).
+- **Long-press to delete** — both HomeScreen and FullRecentListScreen
+  support long-pressing a card to remove the entry, with a "撤销"
+  snackbar action to undo.
+- **Relative time formatting** — Chinese buckets: 刚刚 / X 分钟前 /
+  X 小时前 / 昨天 / X 天前 / X 周前 / YYYY-MM-DD. `formatRelativeTime` in
+  `lib/utils/relative_time.dart`.
+
+### Architecture
+
+- New `RecentFilesRepository` (interface + impl in `lib/services/`).
+- New `RecentFile` data class with `==` / `hashCode` and JSON
+  serialization.
+- New `RecentFileCard` widget (`lib/widgets/`) — extracted from
+  `HomeScreen` so both HomeScreen and FullRecentListScreen share it.
+- `FileService` extended with `loadFromPath` returning a sealed
+  `Ok | Error | Missing` result.
+
+### Tests
+
+- 109 tests passing (up from 49 in v0.1.0)
+- `flutter analyze` clean on the new code
+- `flutter build apk --debug` verified
+
 ## [0.1.0] — 2026-07-03
 
 ### Added
