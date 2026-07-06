@@ -149,14 +149,11 @@ class _RecentFilesSection extends StatelessWidget {
 
             if (hasMore && onViewAll != null) ...[
               const SizedBox(height: 8),
-              GestureDetector(
-                onTap: onViewAll,
-                child: const Text(
-                  '查看全部 →',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.blue,
-                  ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: onViewAll,
+                  child: const Text('查看全部 →'),
                 ),
               ),
             ],

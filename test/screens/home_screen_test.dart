@@ -150,6 +150,40 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // Regression: tapping the "查看全部" link must invoke the callback.
+  // (v0.2.0/v0.2.1 used a bare GestureDetector wrapping a Text, which had a
+  // near-zero hit area and was eaten by the parent ScrollView. v0.2.2 uses
+  // TextButton which has its own tappable region.)
+  // -------------------------------------------------------------------------
+  testWidgets('tapping 查看全部 link invokes onViewAllRecents', (tester) async {
+    final repo = await buildRepo();
+    for (final name in ['a.md', 'b.md', 'c.md', 'd.md', 'e.md']) {
+      await repo.add(path: '/storage/$name', name: name);
+    }
+
+    // Use a tall test surface so the link is on-screen (default 800x600
+    // is too short for 5 recents + the link).
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    var viewAllInvoked = false;
+    await tester.pumpWidget(buildHome(
+      onOpenFile: () {},
+      recents: repo,
+      onViewAllRecents: () => viewAllInvoked = true,
+    ),);
+    await tester.pumpAndSettle();
+
+    expect(find.text('查看全部 →'), findsOneWidget);
+    await tester.tap(find.text('查看全部 →'));
+    await tester.pumpAndSettle();
+
+    expect(viewAllInvoked, isTrue);
+  });
+
+  // -------------------------------------------------------------------------
   // Test 13: tap recent card calls onOpenRecent (NOT onOpenFile)
   // -------------------------------------------------------------------------
 
