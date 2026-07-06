@@ -159,19 +159,20 @@ class _MdPreviewAppState extends State<MdPreviewApp> {
 
   /// Returns true if the user chose to remove, false/null otherwise.
   Future<bool?> _showMissingFileDialog(String path) {
+    final l = AppLocalizations.of(rootNavigatorKey.currentContext!);
     return showDialog<bool>(
       context: rootNavigatorKey.currentContext!,
       builder: (ctx) => AlertDialog(
-        title: const Text('文件不存在'),
-        content: Text('文件可能已被移动或删除:\n$path'),
+        title: Text(l.missingDialogTitle),
+        content: Text('${l.missingDialogBodyPrefix}\n$path'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
+            child: Text(l.missingDialogCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('移除'),
+            child: Text(l.missingDialogRemove),
           ),
         ],
       ),

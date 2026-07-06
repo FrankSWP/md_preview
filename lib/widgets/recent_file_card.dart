@@ -21,9 +21,10 @@ class RecentFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = AppLocalizations.of(context).recentCardSharePlaceholder;
+    final l = AppLocalizations.of(context);
+    final placeholder = l.recentCardSharePlaceholder;
     final subtitle =
-        '${file.parentDir ?? placeholder} · ${formatRelativeTime(file.lastOpenedAt)}';
+        '${file.parentDir ?? placeholder} · ${formatRelativeTime(file.lastOpenedAt, languageCode: l.locale.languageCode)}';
 
     return ListTile(
       contentPadding: EdgeInsets.zero,

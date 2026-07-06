@@ -44,6 +44,34 @@ class AppLocalizations {
       'recents_clear_dialog_confirm': 'Clear',
       'recents_empty_title': 'No recent files yet',
       'recents_empty_subtitle': 'Markdown files you open will appear here.',
+
+      // Task 25 — SettingsScreen
+      'settings_appbar_title': 'Settings',
+      'settings_section_appearance': 'Appearance',
+      'settings_theme_label': 'Theme',
+      'settings_theme_system': 'Follow system',
+      'settings_theme_light': 'Light',
+      'settings_theme_dark': 'Dark',
+      'settings_section_reading': 'Reading',
+      'settings_font_size_label': 'Font size',
+      'settings_section_language': 'Language',
+      'settings_language_label': 'Language',
+      'settings_language_zh': 'Chinese',
+      'settings_language_en': 'English',
+      'settings_section_about': 'About',
+      'settings_about_version': 'Version',
+      'settings_about_open_source': 'Open source licenses',
+
+      // Task 25 — PreviewScreen
+      'preview_appbar_title': 'Preview',
+      'preview_error_title': 'Failed to open file',
+      'preview_error_separator': 'Reason:',
+
+      // Task 25 — Missing file dialog
+      'missing_dialog_title': 'File not found',
+      'missing_dialog_body_prefix': 'The file may have been moved or deleted:',
+      'missing_dialog_cancel': 'Cancel',
+      'missing_dialog_remove': 'Remove',
     },
     'zh': {
       'app_title': 'Markdown 预览',
@@ -65,6 +93,34 @@ class AppLocalizations {
       'recents_clear_dialog_confirm': '清空',
       'recents_empty_title': '还没有最近文件',
       'recents_empty_subtitle': '打开的 Markdown 文件会在这里显示',
+
+      // Task 25 — SettingsScreen
+      'settings_appbar_title': '设置',
+      'settings_section_appearance': '外观',
+      'settings_theme_label': '主题',
+      'settings_theme_system': '跟随系统',
+      'settings_theme_light': '浅色',
+      'settings_theme_dark': '深色',
+      'settings_section_reading': '阅读',
+      'settings_font_size_label': '字号',
+      'settings_section_language': '语言',
+      'settings_language_label': '语言',
+      'settings_language_zh': '中文',
+      'settings_language_en': 'English',
+      'settings_section_about': '关于',
+      'settings_about_version': '版本',
+      'settings_about_open_source': '开源许可',
+
+      // Task 25 — PreviewScreen
+      'preview_appbar_title': '预览',
+      'preview_error_title': '打开文件出错',
+      'preview_error_separator': '原因:',
+
+      // Task 25 — Missing file dialog
+      'missing_dialog_title': '文件不存在',
+      'missing_dialog_body_prefix': '文件可能已被移动或删除:',
+      'missing_dialog_cancel': '取消',
+      'missing_dialog_remove': '移除',
     },
   };
 
@@ -106,6 +162,34 @@ class AppLocalizations {
   String get recentsClearDialogConfirm => _t('recents_clear_dialog_confirm');
   String get recentsEmptyTitle => _t('recents_empty_title');
   String get recentsEmptySubtitle => _t('recents_empty_subtitle');
+
+  // ──────────────── SettingsScreen (Task 25) ────────────────
+  String get settingsAppbarTitle => _t('settings_appbar_title');
+  String get settingsSectionAppearance => _t('settings_section_appearance');
+  String get settingsThemeLabel => _t('settings_theme_label');
+  String get settingsThemeSystem => _t('settings_theme_system');
+  String get settingsThemeLight => _t('settings_theme_light');
+  String get settingsThemeDark => _t('settings_theme_dark');
+  String get settingsSectionReading => _t('settings_section_reading');
+  String get settingsFontSizeLabel => _t('settings_font_size_label');
+  String get settingsSectionLanguage => _t('settings_section_language');
+  String get settingsLanguageLabel => _t('settings_language_label');
+  String get settingsLanguageZh => _t('settings_language_zh');
+  String get settingsLanguageEn => _t('settings_language_en');
+  String get settingsSectionAbout => _t('settings_section_about');
+  String get settingsAboutVersion => _t('settings_about_version');
+  String get settingsAboutOpenSource => _t('settings_about_open_source');
+
+  // ──────────────── PreviewScreen (Task 25) ────────────────
+  String get previewAppbarTitle => _t('preview_appbar_title');
+  String get previewErrorTitle => _t('preview_error_title');
+  String get previewErrorSeparator => _t('preview_error_separator');
+
+  // ──────────────── Missing file dialog (Task 25) ────────────────
+  String get missingDialogTitle => _t('missing_dialog_title');
+  String get missingDialogBodyPrefix => _t('missing_dialog_body_prefix');
+  String get missingDialogCancel => _t('missing_dialog_cancel');
+  String get missingDialogRemove => _t('missing_dialog_remove');
 }
 
 class _AppLocalizationsDelegate

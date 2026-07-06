@@ -154,8 +154,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    // Error reason is rendered in the preview body.
     expect(find.textContaining('permission denied'), findsOneWidget);
-    expect(find.text('Error'), findsOneWidget);
+    // The AppBar shows the localized "failed to open" title, not the
+    // literal 'Error' string that app.dart passes through as the name.
+    // zh is the default locale (SettingsService.create → 'zh').
+    expect(find.text('打开文件出错'), findsOneWidget);
   });
 
   // -------------------------------------------------------------------------

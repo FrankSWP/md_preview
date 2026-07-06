@@ -109,6 +109,122 @@ void main() {
       expect(const AppLocalizations(Locale('en')).recentsEmptySubtitle, 'Markdown files you open will appear here.');
     });
 
+    // ──────────────── Task 25: SettingsScreen ────────────────
+
+    test('settings_appbar_title: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsAppbarTitle, '设置');
+      expect(const AppLocalizations(Locale('en')).settingsAppbarTitle, 'Settings');
+    });
+
+    test('settings_section_appearance: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsSectionAppearance, '外观');
+      expect(const AppLocalizations(Locale('en')).settingsSectionAppearance, 'Appearance');
+    });
+
+    test('settings_theme_label: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsThemeLabel, '主题');
+      expect(const AppLocalizations(Locale('en')).settingsThemeLabel, 'Theme');
+    });
+
+    test('settings_theme_system: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsThemeSystem, '跟随系统');
+      expect(const AppLocalizations(Locale('en')).settingsThemeSystem, 'Follow system');
+    });
+
+    test('settings_theme_light: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsThemeLight, '浅色');
+      expect(const AppLocalizations(Locale('en')).settingsThemeLight, 'Light');
+    });
+
+    test('settings_theme_dark: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsThemeDark, '深色');
+      expect(const AppLocalizations(Locale('en')).settingsThemeDark, 'Dark');
+    });
+
+    test('settings_section_reading: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsSectionReading, '阅读');
+      expect(const AppLocalizations(Locale('en')).settingsSectionReading, 'Reading');
+    });
+
+    test('settings_font_size_label: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsFontSizeLabel, '字号');
+      expect(const AppLocalizations(Locale('en')).settingsFontSizeLabel, 'Font size');
+    });
+
+    test('settings_section_language: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsSectionLanguage, '语言');
+      expect(const AppLocalizations(Locale('en')).settingsSectionLanguage, 'Language');
+    });
+
+    test('settings_language_label: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsLanguageLabel, '语言');
+      expect(const AppLocalizations(Locale('en')).settingsLanguageLabel, 'Language');
+    });
+
+    test('settings_language_zh: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsLanguageZh, '中文');
+      expect(const AppLocalizations(Locale('en')).settingsLanguageZh, 'Chinese');
+    });
+
+    test('settings_language_en: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsLanguageEn, 'English');
+      expect(const AppLocalizations(Locale('en')).settingsLanguageEn, 'English');
+    });
+
+    test('settings_section_about: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsSectionAbout, '关于');
+      expect(const AppLocalizations(Locale('en')).settingsSectionAbout, 'About');
+    });
+
+    test('settings_about_version: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsAboutVersion, '版本');
+      expect(const AppLocalizations(Locale('en')).settingsAboutVersion, 'Version');
+    });
+
+    test('settings_about_open_source: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).settingsAboutOpenSource, '开源许可');
+      expect(const AppLocalizations(Locale('en')).settingsAboutOpenSource, 'Open source licenses');
+    });
+
+    // ──────────────── Task 25: PreviewScreen ────────────────
+
+    test('preview_appbar_title: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).previewAppbarTitle, '预览');
+      expect(const AppLocalizations(Locale('en')).previewAppbarTitle, 'Preview');
+    });
+
+    test('preview_error_title: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).previewErrorTitle, '打开文件出错');
+      expect(const AppLocalizations(Locale('en')).previewErrorTitle, 'Failed to open file');
+    });
+
+    test('preview_error_separator: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).previewErrorSeparator, '原因:');
+      expect(const AppLocalizations(Locale('en')).previewErrorSeparator, 'Reason:');
+    });
+
+    // ──────────────── Task 25: Missing file dialog ────────────────
+
+    test('missing_dialog_title: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).missingDialogTitle, '文件不存在');
+      expect(const AppLocalizations(Locale('en')).missingDialogTitle, 'File not found');
+    });
+
+    test('missing_dialog_body_prefix: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).missingDialogBodyPrefix, '文件可能已被移动或删除:');
+      expect(const AppLocalizations(Locale('en')).missingDialogBodyPrefix, 'The file may have been moved or deleted:');
+    });
+
+    test('missing_dialog_cancel: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).missingDialogCancel, '取消');
+      expect(const AppLocalizations(Locale('en')).missingDialogCancel, 'Cancel');
+    });
+
+    test('missing_dialog_remove: zh and en', () {
+      expect(const AppLocalizations(Locale('zh')).missingDialogRemove, '移除');
+      expect(const AppLocalizations(Locale('en')).missingDialogRemove, 'Remove');
+    });
+
     testWidgets('of(context) returns correct locale inside MaterialApp',
         (tester) async {
       const locale = Locale('zh');
