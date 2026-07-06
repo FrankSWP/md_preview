@@ -41,28 +41,31 @@ Baseline: `5d870365fbe273dd76fc5d5bc32e58ddbe2681c0`
 | 16 | Inline KaTeX CSS + Fonts | ✅ | `0a84032..ecbbb0d` | approved (after fix: also patch woff/ttf refs) |
 | 17 | Inline `$...$` math support | ✅ | `56780af..39bfbaa` | approved (with minor notes) |
 
-## v0.2.0 — Recent files (2026-07-04)
+## v0.3.0 — i18n (zh + en) (2026-07-06)
 
-Repository: https://github.com/FrankSWP/md_preview
+- Tag: v0.3.0 (annotated)
+- Branch: `feat/i18n` merged into main
+- Tasks 23-25: AppLocalizations infrastructure + HomeScreen/FullList
+  translation + Settings/Preview translation + locale-aware time +
+  missing-file dialog + language picker in Settings
+- 196/196 tests passing, lint clean on new code, APK builds
+- v0.2.2 still reachable via `git checkout v0.2.2`
 
-- Tag: v0.2.0 (annotated)
-- Branch: `feat/recent-files` merged into main
-- Tasks 18-21: RecentFilesRepository + HomeScreen redesign +
-  FullRecentListScreen + app.dart wiring
-- 109/109 tests passing, lint clean on new code, APK builds
-- v0.1.0 still reachable via `git checkout v0.1.0`
+### v0.2.x patch releases
+
+- v0.2.1: Fix recents tracking regression (file-picker + intent paths
+  forgot to call recents.add)
+- v0.2.2: Fix "查看全部" link tappable (GestureDetector + Text had
+  near-zero hit area; switched to TextButton with proper hit testing)
 
 ### Commits
 
-- 025d4a3 feat: RecentFilesRepository + formatRelativeTime helper
-- 51359d5 fix(recent): round week boundary + drop placeholder test
-- b9c4aa5 feat(home): Chinese UI + recent files section
-- baab48d fix(home): layout overflow + lint issues
-- eb1ec7d fix Task 19: center-when-fits layout + test 11 expectations
-- 759595c Task 20: FullRecentListScreen + extracted RecentFileCard widget
-- 5923ba9 Task 21: app.dart wiring + tap-to-open + missing-file dialog
-- 0157bb4 fix(tests): add trailing commas to home_screen_test.dart
-- (Task 22 commits)
+- 8639354 Task 23: AppLocalizations + Settings.locale
+- 5c4bedf Task 24: translate HomeScreen + FullRecentListScreen
+- c7abae7 style(tests): add missing const on AppLocalizations
+- 81f309a Task 25: translate Settings + Preview + locale-aware time + dialog
+
+## v0.2.0 — Recent files (2026-07-04)
 
 ## GitHub release (2026-07-03)
 

@@ -25,7 +25,7 @@ or chat app launches md_preview directly.
 | 📂 **File association** | Tap any `.md` file in your file manager to open it |
 | 🔌 **100 % offline** | All libraries (marked, highlight, mermaid, KaTeX + fonts) vendored in `assets/viewer/` |
 | 📑 **Recent files** | 3-5 most recent on home, full list at `/recents` |
-| 🌐 **Chinese UI** | All home-page strings are zh-CN; rest of app is bilingual-ready |
+| 🌐 **i18n** | Simplified Chinese (default) and English; switch live in Settings |
 
 ---
 
@@ -91,7 +91,7 @@ to round-trip cleanly.
 
 ```bash
 flutter test
-# 109 / 109 passing
+# 196 / 196 passing
 ```
 
 Coverage:

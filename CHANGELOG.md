@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-07-06
+
+### Added
+
+- **Internationalization (i18n)** — the entire UI now supports two languages:
+  Simplified Chinese (default) and English.
+  - New `AppLocalizations` class (`lib/utils/app_localizations.dart`) with
+    hand-rolled per-locale string tables (no codegen, no `.arb` files —
+    keeps the project simple for two languages).
+  - New `Settings.locale` field persisted in SharedPreferences; live
+    switching via `SettingsService.setLocale(Locale)`.
+  - New **Settings → Language** section with a popup menu to switch
+    between `中文` and `English` without restarting the app.
+  - `formatRelativeTime` is now locale-aware (Chinese buckets: 刚刚 /
+    X 分钟前 / X 小时前 / 昨天 / X 天前 / X 周前 / YYYY-MM-DD; English
+    buckets: just now / X min ago / X h ago / yesterday / X d ago /
+    X w ago / YYYY-MM-DD).
+- `flutter_localizations` SDK dep added (for default Material/Cupertino
+  localization delegates).
+
+### Changed
+
+- HomeScreen, FullRecentListScreen, SettingsScreen, PreviewScreen all
+  read strings via `AppLocalizations.of(context).<key>` instead of
+  hardcoded literals.
+- Missing-file dialog in `app.dart` uses translated strings.
+- MaterialApp wired with `localizationsDelegates`, `supportedLocales`,
+  and `locale` so widgets (date pickers, etc.) follow the chosen language.
+
+### Tests
+
+- 196 tests passing (up from 113 in v0.2.2)
+- `flutter analyze` clean on new code
+- `flutter build apk --debug` verified
+
 ## [0.2.0] — 2026-07-04
 
 ### Added
