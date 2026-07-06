@@ -60,7 +60,6 @@ class AppLocalizations {
       'settings_language_en': 'English',
       'settings_section_about': 'About',
       'settings_about_version': 'Version',
-      'settings_about_open_source': 'Open source licenses',
 
       // Task 25 — PreviewScreen
       'preview_appbar_title': 'Preview',
@@ -109,7 +108,6 @@ class AppLocalizations {
       'settings_language_en': 'English',
       'settings_section_about': '关于',
       'settings_about_version': '版本',
-      'settings_about_open_source': '开源许可',
 
       // Task 25 — PreviewScreen
       'preview_appbar_title': '预览',
@@ -178,7 +176,6 @@ class AppLocalizations {
   String get settingsLanguageEn => _t('settings_language_en');
   String get settingsSectionAbout => _t('settings_section_about');
   String get settingsAboutVersion => _t('settings_about_version');
-  String get settingsAboutOpenSource => _t('settings_about_open_source');
 
   // ──────────────── PreviewScreen (Task 25) ────────────────
   String get previewAppbarTitle => _t('preview_appbar_title');

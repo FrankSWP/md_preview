@@ -181,11 +181,6 @@ void main() {
       expect(const AppLocalizations(Locale('en')).settingsAboutVersion, 'Version');
     });
 
-    test('settings_about_open_source: zh and en', () {
-      expect(const AppLocalizations(Locale('zh')).settingsAboutOpenSource, '开源许可');
-      expect(const AppLocalizations(Locale('en')).settingsAboutOpenSource, 'Open source licenses');
-    });
-
     // ──────────────── Task 25: PreviewScreen ────────────────
 
     test('preview_appbar_title: zh and en', () {

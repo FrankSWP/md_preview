@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-07-06
+
+### Removed
+
+- **Open-source licenses entry** — `Settings → 关于 → 开源许可 / Open source
+  licenses` has been removed. It opened Flutter's built-in
+  `showLicensePage()` which listed every Dart package's license (10+
+  packages, scroll-heavy, long load time that appeared as a blank white
+  screen). The list was not useful for a single-user viewer and the
+  blank-screen delay is gone.
+
+### Notes
+
+- The 查看全部 (View all) link in v0.3.0 uses a `TextButton` (fixed in
+  v0.2.2) — if it still appears unclickable, verify the installed APK
+  reports `v0.3.1` in `Settings → 关于 → 版本`. v0.2.0 / v0.2.1 builds
+  had the unclickable `GestureDetector` and need a reinstall.
+
 ## [0.3.0] — 2026-07-06
 
 ### Added

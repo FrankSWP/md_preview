@@ -51,7 +51,6 @@ void main() {
     // About section
     expect(find.text('关于'), findsOneWidget);
     expect(find.text('版本'), findsOneWidget);
-    expect(find.text('开源许可'), findsOneWidget);
   });
 
   testWidgets('Tapping language picker and choosing English triggers setLocale',
@@ -126,6 +125,5 @@ void main() {
     expect(find.text('Chinese'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Version'), findsOneWidget);
-    expect(find.text('Open source licenses'), findsOneWidget);
   });
 }
