@@ -114,7 +114,15 @@ class _MdPreviewAppState extends State<MdPreviewApp> {
             onOpenFile: _pickAndPreview,
             recents: widget.recents,
             onOpenRecent: _onOpenRecent,
-            onViewAllRecents: () => Navigator.pushNamed(context, '/recents'),
+            onViewAllRecents: () {
+              // Use rootNavigatorKey, not the surrounding context — the
+              // context here is the AnimatedBuilder's, which is ABOVE
+              // the MaterialApp and has no Navigator ancestor.
+              // Same pattern as _pushPreview below.
+              final nav = rootNavigatorKey.currentState;
+              if (nav == null) return;
+              nav.pushNamed('/recents');
+            },
           ),
         );
       },

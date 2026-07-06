@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-07-06
+
+### Fixed
+
+- **"View all" link tapped → white screen in release mode** — root
+  cause: `app.dart` had `onViewAllRecents: () => Navigator.pushNamed(
+  context, '/recents')` where `context` was the `AnimatedBuilder`'s
+  context, which is **above** the `MaterialApp` and has no `Navigator`
+  ancestor. `Navigator.pushNamed` threw a state error on every tap; in
+  release mode the exception was swallowed and the screen went blank.
+
+  Fix: route the navigation through `rootNavigatorKey.currentState`,
+  the same pattern already used by `_pushPreview` and the static
+  `pushLoaded`. The icon's `BuildContext` is the right one; only the
+  callback-created-in-build context was wrong.
+
+  Regression covered by `test/app_flow_test.dart`:
+  - `Tapping 查看全部 does NOT white-screen` (zh mode)
+  - `Full flow: settings → switch to English → back → view all`
+    (covers the full zh → en round-trip and English view-all)
+
 ## [0.3.1] — 2026-07-06
 
 ### Removed
