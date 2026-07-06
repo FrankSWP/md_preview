@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:md_preview/app.dart';
 import 'package:md_preview/services/file_service.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/services/router.dart';
 import 'package:md_preview/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -154,6 +157,65 @@ void main() {
     expect(find.textContaining('permission denied'), findsOneWidget);
     expect(find.text('Error'), findsOneWidget);
   });
+
+  // -------------------------------------------------------------------------
+  // Regression: pushLoaded must record Ok results in recents (the v0.2.0 bug
+  // where the file-picker and intent paths forgot to call recents.add).
+  //
+  // Note: we don't `await` pushLoaded because it awaits nav.pushNamed,
+  // which only completes when the route is popped. In a test the route is
+  // never popped, so awaiting would hang. The recents.add microtask still
+  // completes before tester.pump() returns, so we can assert after a pump.
+  // -------------------------------------------------------------------------
+
+  testWidgets('pushLoaded(Ok, recents, path) records in recents', (tester) async {
+    final repo = await buildRepo();
+    final app = _HarnessApp(child: const _StubHome());
+    await tester.pumpWidget(app);
+    await tester.pumpAndSettle();
+
+    expect(repo.recent(), isEmpty);
+
+    unawaited(MdPreviewApp.pushLoaded(
+      const Ok('# Hello', 'notes.md'),
+      recents: repo,
+      path: '/storage/notes.md',
+    ),);
+    await tester.pump();
+
+    expect(repo.recent().length, 1);
+    expect(repo.recent().first.path, '/storage/notes.md');
+    expect(repo.recent().first.name, 'notes.md');
+  });
+
+  testWidgets('pushLoaded(Error, recents, path) does NOT record in recents',
+      (tester) async {
+    final repo = await buildRepo();
+    final app = _HarnessApp(child: const _StubHome());
+    await tester.pumpWidget(app);
+    await tester.pumpAndSettle();
+
+    unawaited(MdPreviewApp.pushLoaded(
+      const Error('boom'),
+      recents: repo,
+      path: '/storage/missing.md',
+    ),);
+    await tester.pump();
+
+    expect(repo.recent(), isEmpty);
+  });
+
+  testWidgets('pushLoaded(Ok) without recents still pushes preview',
+      (tester) async {
+    final app = _HarnessApp(child: const _StubHome());
+    await tester.pumpWidget(app);
+    await tester.pumpAndSettle();
+
+    unawaited(MdPreviewApp.pushLoaded(const Ok('# Hi', 'x.md')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('preview-stub'), findsOneWidget);
+  });
 }
 
 // -------------------------------------------------------------------------
@@ -170,4 +232,30 @@ class _MockFileService extends FileService {
   Future<FileLoadResult> loadFromPath(String path) async {
     return loadFromPathResult;
   }
+}
+
+// -------------------------------------------------------------------------
+// _HarnessApp / _StubHome — minimal pump target for pushLoaded tests
+// -------------------------------------------------------------------------
+
+class _HarnessApp extends StatelessWidget {
+  final Widget child;
+  const _HarnessApp({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: rootNavigatorKey,
+      home: child,
+      routes: {
+        '/preview': (_) => const Scaffold(body: Text('preview-stub')),
+      },
+    );
+  }
+}
+
+class _StubHome extends StatelessWidget {
+  const _StubHome();
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: Text('home-stub'));
 }

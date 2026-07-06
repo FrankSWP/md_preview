@@ -27,7 +27,19 @@ class MdPreviewApp extends StatefulWidget {
 
   /// Pushes the preview screen for any [FileLoadResult]. Public so
   /// `main.dart`'s intent listener can reuse it. Uses rootNavigatorKey directly.
-  static Future<void> pushLoaded(FileLoadResult loaded) async {
+  ///
+  /// If [recents] and [path] are both provided and [loaded] is [Ok], the
+  /// file is recorded in the recents list before the preview is pushed.
+  /// This is the single source of truth for "file opened → recents updated"
+  /// — both the file-picker flow and the intent flow go through here.
+  static Future<void> pushLoaded(
+    FileLoadResult loaded, {
+    RecentFilesRepository? recents,
+    String? path,
+  }) async {
+    if (recents != null && path != null && loaded is Ok) {
+      await recents.add(path: path, name: loaded.name);
+    }
     if (loaded is Ok) {
       await _pushPreviewStatic(loaded.content, loaded.name);
     } else if (loaded is Error) {
@@ -99,7 +111,11 @@ class _MdPreviewAppState extends State<MdPreviewApp> {
     if (path == null) return;
     final loaded = await widget.fileService.loadFromUri(path);
     if (!mounted) return;
-    await _pushLoaded(loaded);
+    await MdPreviewApp.pushLoaded(
+      loaded,
+      recents: widget.recents,
+      path: path,
+    );
   }
 
   /// Called when a recent file card is tapped (HomeScreen or FullRecentListScreen).
@@ -144,10 +160,17 @@ class _MdPreviewAppState extends State<MdPreviewApp> {
   }
 
   /// Pushes the preview screen for any [FileLoadResult]. Public so
-  /// `main.dart`'s intent listener can reuse it.
-  Future<void> pushLoaded(FileLoadResult loaded) => _pushLoaded(loaded);
-
-  Future<void> _pushLoaded(FileLoadResult loaded) async {
+  /// `main.dart`'s intent listener can reuse it. Delegates to the static
+  /// version for the recents-tracking side effect, then pushes via the
+  /// instance navigator.
+  Future<void> pushLoaded(
+    FileLoadResult loaded, {
+    RecentFilesRepository? recents,
+    String? path,
+  }) async {
+    if (recents != null && path != null && loaded is Ok) {
+      await recents.add(path: path, name: loaded.name);
+    }
     if (loaded is Ok) {
       await _pushPreview(loaded.content, loaded.name);
     } else if (loaded is Error) {
