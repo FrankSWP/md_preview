@@ -49,7 +49,11 @@ Future<void> _bootstrap() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     intents.sharedFileUris.listen((uri) async {
       final loaded = await fileService.loadFromUri(uri);
-      await MdPreviewApp.pushLoaded(loaded);
+      await MdPreviewApp.pushLoaded(
+        loaded,
+        recents: recents,
+        path: uri,
+      );
     });
   });
 }
