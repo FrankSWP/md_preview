@@ -170,7 +170,7 @@ void main() {
 
   testWidgets('pushLoaded(Ok, recents, path) records in recents', (tester) async {
     final repo = await buildRepo();
-    final app = _HarnessApp(child: const _StubHome());
+    const app = _HarnessApp(child: _StubHome());
     await tester.pumpWidget(app);
     await tester.pumpAndSettle();
 
@@ -191,7 +191,7 @@ void main() {
   testWidgets('pushLoaded(Error, recents, path) does NOT record in recents',
       (tester) async {
     final repo = await buildRepo();
-    final app = _HarnessApp(child: const _StubHome());
+    const app = _HarnessApp(child: _StubHome());
     await tester.pumpWidget(app);
     await tester.pumpAndSettle();
 
@@ -207,7 +207,7 @@ void main() {
 
   testWidgets('pushLoaded(Ok) without recents still pushes preview',
       (tester) async {
-    final app = _HarnessApp(child: const _StubHome());
+    const app = _HarnessApp(child: _StubHome());
     await tester.pumpWidget(app);
     await tester.pumpAndSettle();
 
