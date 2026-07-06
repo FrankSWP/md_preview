@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/utils/app_localizations.dart';
 import 'package:md_preview/widgets/recent_file_card.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -18,12 +19,13 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Markdown 预览'),
+        title: Text(l.homeAppbarTitle),
         actions: [
           IconButton(
-            tooltip: '设置',
+            tooltip: l.homeSettingsTooltip,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).pushNamed('/settings'),
           ),
@@ -48,19 +50,19 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Markdown 预览',
+                        l.homeTitle,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        '从文件管理器打开 .md 文件,或点击下方按钮',
+                      Text(
+                        l.homeSubtitle,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       FilledButton.icon(
                         onPressed: onOpenFile,
                         icon: const Icon(Icons.folder_open_outlined),
-                        label: const Text('打开 Markdown 文件'),
+                        label: Text(l.homeOpenButton),
                       ),
                       if (recents != null) ...[
                         const SizedBox(height: 32),
@@ -98,6 +100,7 @@ class _RecentFilesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return StreamBuilder<List<RecentFile>>(
       stream: recents.changes,
       initialData: recents.recent(),
@@ -113,9 +116,9 @@ class _RecentFilesSection extends StatelessWidget {
           children: [
             const Divider(),
             const SizedBox(height: 8),
-            const Text(
-              '最近文件',
-              style: TextStyle(
+            Text(
+              l.homeRecentSectionHeader,
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey,
@@ -134,9 +137,9 @@ class _RecentFilesSection extends StatelessWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('已从最近文件中移除'),
+                          content: Text(l.recentRemovedSnackbar),
                           action: SnackBarAction(
-                            label: '撤销',
+                            label: l.recentUndoAction,
                             onPressed: () async {
                               await recents.add(path: path, name: name);
                             },
@@ -153,7 +156,7 @@ class _RecentFilesSection extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: TextButton(
                   onPressed: onViewAll,
-                  child: const Text('查看全部 →'),
+                  child: Text(l.homeViewAllLink),
                 ),
               ),
             ],
@@ -163,4 +166,3 @@ class _RecentFilesSection extends StatelessWidget {
     );
   }
 }
-

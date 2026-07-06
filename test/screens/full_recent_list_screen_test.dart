@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:md_preview/screens/full_recent_list_screen.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/utils/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -22,8 +24,17 @@ void main() {
   Widget buildScreen({
     required RecentFilesRepository repo,
     ValueChanged<RecentFile>? onOpenFile,
+    Locale locale = const Locale('zh'),
   }) {
     return MaterialApp(
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('zh')],
       home: FullRecentListScreen(
         recents: repo,
         onOpenFile: onOpenFile,
@@ -32,15 +43,19 @@ void main() {
   }
 
   // -------------------------------------------------------------------------
-  // Test 1: Empty state — shows '还没有最近文件' title
+  // Test 1: Empty state — shows localized title (both locales)
   // -------------------------------------------------------------------------
-  testWidgets('empty state: shows 还没有最近文件 title', (tester) async {
-    final repo = await buildRepo();
-    await tester.pumpWidget(buildScreen(repo: repo));
-    await tester.pumpAndSettle();
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('empty state: shows localized title ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await tester.pumpWidget(buildScreen(repo: repo, locale: locale));
+      await tester.pumpAndSettle();
 
-    expect(find.text('还没有最近文件'), findsOneWidget);
-  });
+      final expected = lang == 'zh' ? '还没有最近文件' : 'No recent files yet';
+      expect(find.text(expected), findsOneWidget);
+    });
+  }
 
   // -------------------------------------------------------------------------
   // Test 2: With 3 entries — all 3 filenames shown
@@ -51,7 +66,7 @@ void main() {
     await repo.add(path: '/storage/b.md', name: 'b.md');
     await repo.add(path: '/storage/c.md', name: 'c.md');
 
-    await tester.pumpWidget(buildScreen(repo: repo));
+    await tester.pumpWidget(buildScreen(repo: repo, locale: const Locale('zh')));
     await tester.pumpAndSettle();
 
     expect(find.text('a.md'), findsOneWidget);
@@ -68,19 +83,15 @@ void main() {
       await repo.add(path: '/storage/file_$i.md', name: 'file_$i.md');
     }
 
-    await tester.pumpWidget(buildScreen(repo: repo));
+    await tester.pumpWidget(buildScreen(repo: repo, locale: const Locale('zh')));
     await tester.pumpAndSettle();
 
-    // The ListView is virtualized: only ~8 items exist in the tree at a time.
-    // Verify the list renders (some items visible) and can be scrolled.
     expect(find.byType(ListTile), findsWidgets);
 
-    // Verify first few items are visible at start.
     expect(find.text('file_49.md'), findsOneWidget);
     expect(find.text('file_48.md'), findsOneWidget);
     expect(find.text('file_47.md'), findsOneWidget);
 
-    // Scroll incrementally to ensure all items render without error.
     final listView = find.byType(ListView);
     for (int i = 0; i < 10; i++) {
       await tester.drag(listView, const Offset(0, -300));
@@ -100,6 +111,7 @@ void main() {
     RecentFile? openedFile;
     await tester.pumpWidget(buildScreen(
       repo: repo,
+      locale: const Locale('zh'),
       onOpenFile: (file) => openedFile = file,
     ),);
     await tester.pumpAndSettle();
@@ -118,7 +130,6 @@ void main() {
     final repo = await buildRepo();
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
-    // Push FullRecentListScreen onto a route stack so there is a route to pop to.
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(body: Center(child: Text('home'))),
@@ -139,52 +150,64 @@ void main() {
     await tester.tap(find.text('notes.md'));
     await tester.pumpAndSettle();
 
-    // After pop, FullRecentListScreen is removed from the tree.
     expect(find.byType(FullRecentListScreen), findsNothing);
   });
 
   // -------------------------------------------------------------------------
-  // Test 6: Long-press a card removes it
+  // Test 6: Long-press a card removes it (both locales)
   // -------------------------------------------------------------------------
-  testWidgets('long-press a card removes it', (tester) async {
-    final repo = await buildRepo();
-    await repo.add(path: '/storage/notes.md', name: 'notes.md');
-    await repo.add(path: '/storage/api.md', name: 'API设计.md');
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('long-press a card removes it ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await repo.add(path: '/storage/notes.md', name: 'notes.md');
+      await repo.add(path: '/storage/api.md', name: 'API设计.md');
 
-    await tester.pumpWidget(buildScreen(repo: repo));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildScreen(repo: repo, locale: locale));
+      await tester.pumpAndSettle();
 
-    expect(find.text('notes.md'), findsOneWidget);
+      expect(find.text('notes.md'), findsOneWidget);
 
-    await tester.longPress(find.text('notes.md'));
-    await tester.pumpAndSettle();
+      await tester.longPress(find.text('notes.md'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('notes.md'), findsNothing);
-    expect(find.text('已从最近文件中移除'), findsOneWidget);
-    expect(find.text('撤销'), findsOneWidget);
-  });
+      expect(find.text('notes.md'), findsNothing);
+      final snackbarText = lang == 'zh' ? '已从最近文件中移除' : 'Removed from recent files';
+      final undoText = lang == 'zh' ? '撤销' : 'Undo';
+      expect(find.text(snackbarText), findsOneWidget);
+      expect(find.text(undoText), findsOneWidget);
+    });
+  }
 
   // -------------------------------------------------------------------------
-  // Test 7: "清空" button shows confirmation dialog with '清空最近文件?'
+  // Test 7: Clear button shows confirmation dialog with localized strings
   // -------------------------------------------------------------------------
-  testWidgets('清空 button shows confirmation dialog with 清空最近文件?', (tester) async {
-    final repo = await buildRepo();
-    await repo.add(path: '/storage/notes.md', name: 'notes.md');
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('Clear button shows localized dialog ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
-    await tester.pumpWidget(buildScreen(repo: repo));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildScreen(repo: repo, locale: locale));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('清空'));
-    await tester.pumpAndSettle();
+      final tooltip = lang == 'zh' ? '清空' : 'Clear';
+      await tester.tap(find.byTooltip(tooltip));
+      await tester.pumpAndSettle();
 
-    expect(find.text('清空最近文件?'), findsOneWidget);
-    expect(
-      find.text('将移除所有最近打开的文件,此操作不可撤销。'),
-      findsOneWidget,
-    );
-    expect(find.text('取消'), findsOneWidget);
-    expect(find.text('清空'), findsOneWidget);
-  });
+      final dialogTitle = lang == 'zh' ? '清空最近文件?' : 'Clear recent files?';
+      final dialogBody = lang == 'zh'
+          ? '将移除所有最近打开的文件,此操作不可撤销。'
+          : 'All recently opened files will be removed. This cannot be undone.';
+      final cancelText = lang == 'zh' ? '取消' : 'Cancel';
+      final confirmText = lang == 'zh' ? '清空' : 'Clear';
+
+      expect(find.text(dialogTitle), findsOneWidget);
+      expect(find.text(dialogBody), findsOneWidget);
+      expect(find.text(cancelText), findsOneWidget);
+      expect(find.text(confirmText), findsOneWidget);
+    });
+  }
 
   // -------------------------------------------------------------------------
   // Test 8: Confirming the dialog calls recents.clear()
@@ -194,7 +217,7 @@ void main() {
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
     await repo.add(path: '/storage/api.md', name: 'API设计.md');
 
-    await tester.pumpWidget(buildScreen(repo: repo));
+    await tester.pumpWidget(buildScreen(repo: repo, locale: const Locale('zh')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('清空'));
@@ -216,7 +239,7 @@ void main() {
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
     await repo.add(path: '/storage/api.md', name: 'API设计.md');
 
-    await tester.pumpWidget(buildScreen(repo: repo));
+    await tester.pumpWidget(buildScreen(repo: repo, locale: const Locale('zh')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('清空'));
@@ -230,13 +253,17 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Test 10: AppBar shows '最近文件' title
+  // Test 10: AppBar shows localized title (both locales)
   // -------------------------------------------------------------------------
-  testWidgets('AppBar shows 最近文件 title', (tester) async {
-    final repo = await buildRepo();
-    await tester.pumpWidget(buildScreen(repo: repo));
-    await tester.pumpAndSettle();
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('AppBar shows localized title ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await tester.pumpWidget(buildScreen(repo: repo, locale: locale));
+      await tester.pumpAndSettle();
 
-    expect(find.text('最近文件'), findsOneWidget);
-  });
+      final expected = lang == 'zh' ? '最近文件' : 'Recent files';
+      expect(find.text(expected), findsOneWidget);
+    });
+  }
 }

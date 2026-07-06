@@ -42,5 +42,42 @@ void main() {
       await s.setThemeMode(ThemeMode.dark);
       expect(fired, [ThemeMode.dark]);
     });
+
+    group('locale', () {
+      test('setLocale persists and can be retrieved after re-create', () async {
+        final s1 = await SettingsService.create();
+        await s1.setLocale(const Locale('en'));
+        expect(s1.locale, const Locale('en'));
+
+        // Re-create to verify persistence
+        final s2 = await SettingsService.create();
+        expect(s2.locale, const Locale('en'));
+      });
+
+      test('setLocale zh persists and round-trips', () async {
+        final s1 = await SettingsService.create();
+        await s1.setLocale(const Locale('zh'));
+        expect(s1.locale, const Locale('zh'));
+
+        final s2 = await SettingsService.create();
+        expect(s2.locale, const Locale('zh'));
+      });
+
+      test('default locale is zh when no prefs', () async {
+        SharedPreferences.setMockInitialValues({});
+        final s = await SettingsService.create();
+        expect(s.locale, const Locale('zh'));
+      });
+
+      test('localeListenable notifies on setLocale', () async {
+        final s = await SettingsService.create();
+        final fired = <Locale>[];
+        s.localeListenable.addListener(() {
+          fired.add(s.localeListenable.value);
+        });
+        await s.setLocale(const Locale('en'));
+        expect(fired, [const Locale('en')]);
+      });
+    });
   });
 }

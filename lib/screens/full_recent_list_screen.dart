@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/utils/app_localizations.dart';
 import 'package:md_preview/widgets/recent_file_card.dart';
 
 /// A screen showing all recent files (up to 50), with options to open or
@@ -16,12 +17,13 @@ class FullRecentListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('最近文件'),
+        title: Text(l.recentsAppbarTitle),
         actions: [
           IconButton(
-            tooltip: '清空',
+            tooltip: l.recentsClearTooltip,
             icon: const Icon(Icons.delete_sweep_outlined),
             onPressed: () => _showClearDialog(context),
           ),
@@ -44,6 +46,7 @@ class FullRecentListScreen extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context, RecentFile file) {
+    final l = AppLocalizations.of(context);
     return RecentFileCard(
       file: file,
       onTap: onOpenFile != null
@@ -59,9 +62,9 @@ class FullRecentListScreen extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('已从最近文件中移除'),
+              content: Text(l.recentRemovedSnackbar),
               action: SnackBarAction(
-                label: '撤销',
+                label: l.recentUndoAction,
                 onPressed: () async {
                   await recents.add(path: path, name: name);
                 },
@@ -74,24 +77,23 @@ class FullRecentListScreen extends StatelessWidget {
   }
 
   void _showClearDialog(BuildContext context) {
+    final l = AppLocalizations.of(context);
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('清空最近文件?'),
-        content: const Text(
-          '将移除所有最近打开的文件,此操作不可撤销。',
-        ),
+        title: Text(l.recentsClearDialogTitle),
+        content: Text(l.recentsClearDialogBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(l.recentsClearDialogCancel),
           ),
           TextButton(
             onPressed: () {
               recents.clear();
               Navigator.pop(dialogContext);
             },
-            child: const Text('清空'),
+            child: Text(l.recentsClearDialogConfirm),
           ),
         ],
       ),
@@ -104,6 +106,12 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    // Split the subtitle across two Text widgets to preserve visual layout.
+    final parts = l.recentsEmptySubtitle.split('会');
+    final part1 = parts.isNotEmpty ? '${parts[0]}会' : l.recentsEmptySubtitle;
+    final part2 = parts.length > 1 ? parts[1] : '';
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -114,22 +122,22 @@ class _EmptyState extends StatelessWidget {
             color: Colors.grey[400],
           ),
           const SizedBox(height: 16),
-          const Text(
-            '还没有最近文件',
-            style: TextStyle(
+          Text(
+            l.recentsEmptyTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
               color: Colors.grey,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            '打开的 Markdown 文件会',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            part1,
+            style: const TextStyle(color: Colors.grey),
           ),
-          const Text(
-            '在这里显示',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            part2,
+            style: const TextStyle(color: Colors.grey),
           ),
         ],
       ),

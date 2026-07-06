@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:md_preview/screens/full_recent_list_screen.dart';
 import 'package:md_preview/screens/home_screen.dart';
 import 'package:md_preview/screens/preview_screen.dart';
@@ -9,6 +10,7 @@ import 'package:md_preview/services/recent_files_repository.dart';
 import 'package:md_preview/services/router.dart';
 import 'package:md_preview/services/settings_service.dart';
 import 'package:md_preview/theme/app_theme.dart';
+import 'package:md_preview/utils/app_localizations.dart';
 
 class MdPreviewApp extends StatefulWidget {
   final SettingsService settings;
@@ -62,43 +64,60 @@ class MdPreviewApp extends StatefulWidget {
 class _MdPreviewAppState extends State<MdPreviewApp> {
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: widget.settings.themeModeListenable,
-      builder: (_, mode, __) => MaterialApp(
-        title: 'MD Preview',
-        navigatorKey: rootNavigatorKey,
-        theme: buildLightTheme(),
-        darkTheme: buildDarkTheme(),
-        themeMode: mode,
-        initialRoute: '/',
-        routes: {
-          '/settings': (_) => SettingsScreen(settings: widget.settings),
-          '/recents': (_) => FullRecentListScreen(
-                recents: widget.recents,
-                onOpenFile: (file) => _onOpenRecent(file),
-              ),
-        },
-        onGenerateRoute: (s) {
-          if (s.name == '/preview') {
-            final args =
-                (s.arguments as Map<String, String>? ?? <String, String>{});
-            return MaterialPageRoute(
-              builder: (_) => PreviewScreen(
-                content: args['content'] ?? '',
-                name: args['name'] ?? '',
-                fontSize: widget.settings.fontSizeListenable.value,
-              ),
-            );
-          }
-          return null;
-        },
-        home: HomeScreen(
-          onOpenFile: _pickAndPreview,
-          recents: widget.recents,
-          onOpenRecent: _onOpenRecent,
-          onViewAllRecents: () => Navigator.pushNamed(context, '/recents'),
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        widget.settings.themeModeListenable,
+        widget.settings.localeListenable,
+      ]),
+      builder: (_, __) {
+        final l = AppLocalizations.of(context);
+        return MaterialApp(
+          title: l.appTitle,
+          locale: widget.settings.locale,
+          navigatorKey: rootNavigatorKey,
+          theme: buildLightTheme(),
+          darkTheme: buildDarkTheme(),
+          themeMode: widget.settings.themeModeListenable.value,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en'),
+            Locale('zh'),
+          ],
+          initialRoute: '/',
+          routes: {
+            '/settings': (_) => SettingsScreen(settings: widget.settings),
+            '/recents': (_) => FullRecentListScreen(
+                  recents: widget.recents,
+                  onOpenFile: (file) => _onOpenRecent(file),
+                ),
+          },
+          onGenerateRoute: (s) {
+            if (s.name == '/preview') {
+              final args =
+                  (s.arguments as Map<String, String>? ?? <String, String>{});
+              return MaterialPageRoute(
+                builder: (_) => PreviewScreen(
+                  content: args['content'] ?? '',
+                  name: args['name'] ?? '',
+                  fontSize: widget.settings.fontSizeListenable.value,
+                ),
+              );
+            }
+            return null;
+          },
+          home: HomeScreen(
+            onOpenFile: _pickAndPreview,
+            recents: widget.recents,
+            onOpenRecent: _onOpenRecent,
+            onViewAllRecents: () => Navigator.pushNamed(context, '/recents'),
+          ),
+        );
+      },
     );
   }
 
@@ -140,19 +159,20 @@ class _MdPreviewAppState extends State<MdPreviewApp> {
 
   /// Returns true if the user chose to remove, false/null otherwise.
   Future<bool?> _showMissingFileDialog(String path) {
+    final l = AppLocalizations.of(rootNavigatorKey.currentContext!);
     return showDialog<bool>(
       context: rootNavigatorKey.currentContext!,
       builder: (ctx) => AlertDialog(
-        title: const Text('文件不存在'),
-        content: Text('文件可能已被移动或删除:\n$path'),
+        title: Text(l.missingDialogTitle),
+        content: Text('${l.missingDialogBodyPrefix}\n$path'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
+            child: Text(l.missingDialogCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('移除'),
+            child: Text(l.missingDialogRemove),
           ),
         ],
       ),

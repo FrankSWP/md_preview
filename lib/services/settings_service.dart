@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsService {
   static const _kThemeMode = 'theme_mode';
   static const _kFontSize = 'font_size';
+  static const _kLocale = 'locale';
 
   static const _defaultFontSize = 16.0;
   static const _minFontSize = 10.0;
@@ -16,10 +17,12 @@ class SettingsService {
   final SharedPreferences _prefs;
   final ValueNotifier<ThemeMode> _themeMode = ValueNotifier(ThemeMode.system);
   final ValueNotifier<double> _fontSize = ValueNotifier(_defaultFontSize);
+  final ValueNotifier<Locale> _locale = ValueNotifier(const Locale('zh'));
 
   SettingsService._(this._prefs) {
     _themeMode.value = _readThemeMode();
     _fontSize.value = _readFontSize();
+    _locale.value = _readLocale();
   }
 
   /// Loads the underlying [SharedPreferences] then constructs the service.
@@ -32,6 +35,7 @@ class SettingsService {
 
   ValueListenable<ThemeMode> get themeModeListenable => _themeMode;
   ValueListenable<double> get fontSizeListenable => _fontSize;
+  ValueListenable<Locale> get localeListenable => _locale;
 
   Future<ThemeMode> getThemeMode() async => _themeMode.value;
 
@@ -39,6 +43,14 @@ class SettingsService {
     if (_themeMode.value == mode) return;
     await _prefs.setString(_kThemeMode, _encodeThemeMode(mode));
     _themeMode.value = mode;
+  }
+
+  Locale get locale => _locale.value;
+
+  Future<void> setLocale(Locale locale) async {
+    if (_locale.value == locale) return;
+    await _prefs.setString(_kLocale, _encodeLocale(locale));
+    _locale.value = locale;
   }
 
   Future<double> getFontSize() async => _fontSize.value;
@@ -73,4 +85,12 @@ class SettingsService {
         'system' => ThemeMode.system,
         _ => null,
       };
+
+  Locale _readLocale() {
+    final raw = _prefs.getString(_kLocale);
+    if (raw == null) return const Locale('zh');
+    return Locale(raw);
+  }
+
+  static String _encodeLocale(Locale l) => l.languageCode;
 }

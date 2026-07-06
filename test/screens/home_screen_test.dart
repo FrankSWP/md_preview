@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:md_preview/screens/home_screen.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/utils/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -12,88 +14,118 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Helper: build HomeScreen with optional repo
+  // Helper: build HomeScreen with optional repo and locale
   // -------------------------------------------------------------------------
   Future<RecentFilesRepository> buildRepo() async {
     final prefs = await SharedPreferences.getInstance();
     return RecentFilesRepository(prefs: prefs);
   }
 
-  Widget buildHome({
+  Future<void> pumpHome({
+    required WidgetTester tester,
     required VoidCallback onOpenFile,
     VoidCallback? onViewAllRecents,
     RecentFilesRepository? recents,
     ValueChanged<RecentFile>? onOpenRecent,
-  }) {
-    return MaterialApp(
-      home: HomeScreen(
-        onOpenFile: onOpenFile,
-        onViewAllRecents: onViewAllRecents,
-        recents: recents,
-        onOpenRecent: onOpenRecent,
+    Locale locale = const Locale('zh'),
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: locale,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('zh')],
+        home: HomeScreen(
+          onOpenFile: onOpenFile,
+          onViewAllRecents: onViewAllRecents,
+          recents: recents,
+          onOpenRecent: onOpenRecent,
+        ),
+        routes: {
+          '/settings': (_) => const Scaffold(body: Text('settings-stub')),
+        },
       ),
-      routes: {
-        '/settings': (_) => const Scaffold(body: Text('settings-stub')),
-      },
     );
+    await tester.pumpAndSettle();
   }
 
   // -------------------------------------------------------------------------
-  // Tests 1-6: Chinese strings and basic interactions (no recents)
+  // Tests 1-4: AppBar title, open button, subtitle, settings tooltip (both locales)
   // -------------------------------------------------------------------------
 
-  testWidgets('renders Chinese AppBar title', (tester) async {
-    await tester.pumpWidget(buildHome(onOpenFile: () {}));
-    expect(find.text('Markdown 预览'), findsAtLeastNWidgets(1));
-  });
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('AppBar title ($lang)', (tester) async {
+      await pumpHome(tester: tester, onOpenFile: () {}, locale: locale);
+      final expected = lang == 'zh' ? 'Markdown 预览' : 'MD Preview';
+      expect(find.text(expected), findsAtLeastNWidgets(1));
+    });
 
-  testWidgets('renders Chinese open button label', (tester) async {
-    await tester.pumpWidget(buildHome(onOpenFile: () {}));
-    expect(find.text('打开 Markdown 文件'), findsOneWidget);
-  });
+    testWidgets('open button label ($lang)', (tester) async {
+      await pumpHome(tester: tester, onOpenFile: () {}, locale: locale);
+      final expected = lang == 'zh' ? '打开 Markdown 文件' : 'Open Markdown File';
+      expect(find.text(expected), findsOneWidget);
+    });
 
-  testWidgets('renders Chinese subtitle', (tester) async {
-    await tester.pumpWidget(buildHome(onOpenFile: () {}));
-    expect(find.text('从文件管理器打开 .md 文件,或点击下方按钮'), findsOneWidget);
-  });
+    testWidgets('subtitle ($lang)', (tester) async {
+      await pumpHome(tester: tester, onOpenFile: () {}, locale: locale);
+      final expected = lang == 'zh'
+          ? '从文件管理器打开 .md 文件,或点击下方按钮'
+          : 'Open a .md file from your file manager, or use the button below.';
+      expect(find.text(expected), findsOneWidget);
+    });
 
-  testWidgets('renders Chinese Settings tooltip', (tester) async {
-    await tester.pumpWidget(buildHome(onOpenFile: () {}));
-    expect(find.byTooltip('设置'), findsOneWidget);
-  });
+    testWidgets('Settings tooltip ($lang)', (tester) async {
+      await pumpHome(tester: tester, onOpenFile: () {}, locale: locale);
+      final expected = lang == 'zh' ? '设置' : 'Settings';
+      expect(find.byTooltip(expected), findsOneWidget);
+    });
+  }
 
   testWidgets('tapping open button calls onOpenFile', (tester) async {
     var opened = false;
-    await tester.pumpWidget(buildHome(onOpenFile: () => opened = true));
+    await pumpHome(
+      tester: tester,
+      locale: const Locale('zh'),
+      onOpenFile: () => opened = true,
+    );
     await tester.tap(find.text('打开 Markdown 文件'));
+    await tester.pumpAndSettle();
     expect(opened, isTrue);
   });
 
   testWidgets('tapping settings icon pushes /settings route', (tester) async {
-    await tester.pumpWidget(buildHome(onOpenFile: () {}));
+    await pumpHome(
+      tester: tester,
+      locale: const Locale('zh'),
+      onOpenFile: () {},
+    );
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
     expect(find.text('settings-stub'), findsOneWidget);
   });
 
   // -------------------------------------------------------------------------
-  // Tests 7-8: recents section hidden when null or empty
+  // Tests 5-6: recents section hidden when null or empty
   // -------------------------------------------------------------------------
 
   testWidgets('with recents == null: no 最近文件 header', (tester) async {
-    await tester.pumpWidget(buildHome(onOpenFile: () {}));
+    await pumpHome(tester: tester, locale: const Locale('zh'), onOpenFile: () {});
     expect(find.text('最近文件'), findsNothing);
   });
 
   testWidgets('with empty recents: no 最近文件 header', (tester) async {
     final repo = await buildRepo();
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
-    await tester.pumpAndSettle();
+    await pumpHome(tester: tester, locale: const Locale('zh'), onOpenFile: () {}, recents: repo);
     expect(find.text('最近文件'), findsNothing);
   });
 
   // -------------------------------------------------------------------------
-  // Tests 9-12: recents section content
+  // Tests 7-10: recents section content
   // -------------------------------------------------------------------------
 
   testWidgets('with 2 recent entries: both filenames are shown', (tester) async {
@@ -101,8 +133,7 @@ void main() {
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
     await repo.add(path: '/storage/api.md', name: 'API设计.md');
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
-    await tester.pumpAndSettle();
+    await pumpHome(tester: tester, locale: const Locale('zh'), onOpenFile: () {}, recents: repo);
 
     expect(find.text('notes.md'), findsOneWidget);
     expect(find.text('API设计.md'), findsOneWidget);
@@ -116,8 +147,7 @@ void main() {
       await repo.add(path: '/storage/$name', name: name);
     }
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
-    await tester.pumpAndSettle();
+    await pumpHome(tester: tester, locale: const Locale('zh'), onOpenFile: () {}, recents: repo);
 
     expect(find.text('e.md'), findsOneWidget);
     expect(find.text('d.md'), findsOneWidget);
@@ -126,55 +156,60 @@ void main() {
     expect(find.text('b.md'), findsNothing);
   });
 
-  testWidgets('with 5 recent entries: 查看全部 link is shown', (tester) async {
-    final repo = await buildRepo();
-    for (final name in ['a.md', 'b.md', 'c.md', 'd.md', 'e.md']) {
-      await repo.add(path: '/storage/$name', name: name);
-    }
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('with 5 recent entries: View all link is shown ($lang)', (tester) async {
+      final repo = await buildRepo();
+      for (final name in ['a.md', 'b.md', 'c.md', 'd.md', 'e.md']) {
+        await repo.add(path: '/storage/$name', name: name);
+      }
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, onViewAllRecents: () {}, recents: repo));
-    await tester.pumpAndSettle();
+      await pumpHome(
+        tester: tester,
+        locale: locale,
+        onOpenFile: () {},
+        onViewAllRecents: () {},
+        recents: repo,
+      );
 
-    expect(find.text('查看全部 →'), findsOneWidget);
-  });
+      final expected = lang == 'zh' ? '查看全部 →' : 'View all →';
+      expect(find.text(expected), findsOneWidget);
+    });
 
-  testWidgets('with 2 recent entries: 查看全部 link is NOT shown', (tester) async {
-    final repo = await buildRepo();
-    await repo.add(path: '/storage/a.md', name: 'a.md');
-    await repo.add(path: '/storage/b.md', name: 'b.md');
+    testWidgets('with 2 recent entries: View all link is NOT shown ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await repo.add(path: '/storage/a.md', name: 'a.md');
+      await repo.add(path: '/storage/b.md', name: 'b.md');
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
-    await tester.pumpAndSettle();
+      await pumpHome(tester: tester, locale: locale, onOpenFile: () {}, recents: repo);
 
-    expect(find.text('查看全部 →'), findsNothing);
-  });
+      final expected = lang == 'zh' ? '查看全部 →' : 'View all →';
+      expect(find.text(expected), findsNothing);
+    });
+  }
 
   // -------------------------------------------------------------------------
   // Regression: tapping the "查看全部" link must invoke the callback.
-  // (v0.2.0/v0.2.1 used a bare GestureDetector wrapping a Text, which had a
-  // near-zero hit area and was eaten by the parent ScrollView. v0.2.2 uses
-  // TextButton which has its own tappable region.)
   // -------------------------------------------------------------------------
-  testWidgets('tapping 查看全部 link invokes onViewAllRecents', (tester) async {
+  testWidgets('tapping View all link invokes onViewAllRecents', (tester) async {
     final repo = await buildRepo();
     for (final name in ['a.md', 'b.md', 'c.md', 'd.md', 'e.md']) {
       await repo.add(path: '/storage/$name', name: name);
     }
 
-    // Use a tall test surface so the link is on-screen (default 800x600
-    // is too short for 5 recents + the link).
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     var viewAllInvoked = false;
-    await tester.pumpWidget(buildHome(
+    await pumpHome(
+      tester: tester,
+      locale: const Locale('zh'),
       onOpenFile: () {},
       recents: repo,
       onViewAllRecents: () => viewAllInvoked = true,
-    ),);
-    await tester.pumpAndSettle();
+    );
 
     expect(find.text('查看全部 →'), findsOneWidget);
     await tester.tap(find.text('查看全部 →'));
@@ -184,7 +219,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Test 13: tap recent card calls onOpenRecent (NOT onOpenFile)
+  // Test: tap recent card calls onOpenRecent (NOT onOpenFile)
   // -------------------------------------------------------------------------
 
   testWidgets('tapping a recent file card calls onOpenRecent (NOT onOpenFile)', (tester) async {
@@ -193,25 +228,24 @@ void main() {
 
     RecentFile? openedFile;
     var pickerOpened = false;
-    await tester.pumpWidget(buildHome(
+    await pumpHome(
+      tester: tester,
+      locale: const Locale('zh'),
       onOpenFile: () => pickerOpened = true,
       recents: repo,
       onOpenRecent: (file) => openedFile = file,
-    ),);
-    await tester.pumpAndSettle();
+    );
 
-    // tap the card
     await tester.tap(find.text('notes.md'));
     await tester.pumpAndSettle();
 
-    // Should call onOpenRecent, NOT onOpenFile
     expect(openedFile?.name, equals('notes.md'));
     expect(openedFile?.path, equals('/storage/notes.md'));
     expect(pickerOpened, isFalse);
   });
 
   // -------------------------------------------------------------------------
-  // Test 14: when onOpenRecent is null, tapping a card does nothing
+  // Test: when onOpenRecent is null, tapping a card does nothing
   // -------------------------------------------------------------------------
 
   testWidgets('when onOpenRecent is null, tapping a card does nothing (no crash)', (tester) async {
@@ -219,14 +253,14 @@ void main() {
     await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
     var pickerOpened = false;
-    await tester.pumpWidget(buildHome(
+    await pumpHome(
+      tester: tester,
+      locale: const Locale('zh'),
       onOpenFile: () => pickerOpened = true,
       recents: repo,
-      onOpenRecent: null, // explicitly null
-    ),);
-    await tester.pumpAndSettle();
+      onOpenRecent: null,
+    );
 
-    // tap the card — should not crash and should not call onOpenFile
     await tester.tap(find.text('notes.md'));
     await tester.pumpAndSettle();
 
@@ -234,40 +268,44 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Test 15: long-press removes and shows snackbar
+  // Test: long-press removes and shows snackbar (both locales)
   // -------------------------------------------------------------------------
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('long-pressing a recent card removes it and shows snackbar ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await repo.add(path: '/storage/notes.md', name: 'notes.md');
 
-  testWidgets('long-pressing a recent card removes it and shows snackbar', (tester) async {
-    final repo = await buildRepo();
-    await repo.add(path: '/storage/notes.md', name: 'notes.md');
+      await pumpHome(tester: tester, locale: locale, onOpenFile: () {}, recents: repo);
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
-    await tester.pumpAndSettle();
+      expect(find.text('notes.md'), findsOneWidget);
 
-    expect(find.text('notes.md'), findsOneWidget);
+      await tester.longPress(find.text('notes.md'));
+      await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('notes.md'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('notes.md'), findsNothing);
-    expect(find.text('已从最近文件中移除'), findsOneWidget);
-    expect(find.text('撤销'), findsOneWidget);
-  });
+      expect(find.text('notes.md'), findsNothing);
+      final snackbarText = lang == 'zh' ? '已从最近文件中移除' : 'Removed from recent files';
+      final undoText = lang == 'zh' ? '撤销' : 'Undo';
+      expect(find.text(snackbarText), findsOneWidget);
+      expect(find.text(undoText), findsOneWidget);
+    });
+  }
 
   // -------------------------------------------------------------------------
-  // Test 16: content:// shows 从分享接收
+  // Test: content:// shows From share / 从分享接收
   // -------------------------------------------------------------------------
+  for (final locale in [const Locale('zh'), const Locale('en')]) {
+    final lang = locale.languageCode;
+    testWidgets('content:// recents show share placeholder instead of parent dir ($lang)', (tester) async {
+      final repo = await buildRepo();
+      await repo.add(path: 'content://com.example.app/file/123', name: 'shared.md');
 
-  testWidgets('content:// recents show 从分享接收 instead of parent dir', (tester) async {
-    final repo = await buildRepo();
-    await repo.add(path: 'content://com.example.app/file/123', name: 'shared.md');
+      await pumpHome(tester: tester, locale: locale, onOpenFile: () {}, recents: repo);
 
-    await tester.pumpWidget(buildHome(onOpenFile: () {}, recents: repo));
-    await tester.pumpAndSettle();
-
-    // The subtitle should contain "从分享接收"
-    expect(find.textContaining('从分享接收'), findsOneWidget);
-    // It should NOT contain a path segment
-    expect(find.textContaining('/'), findsNothing);
-  });
+      final placeholder = lang == 'zh' ? '从分享接收' : 'From share';
+      expect(find.textContaining(placeholder), findsOneWidget);
+      // It should NOT contain a path segment
+      expect(find.textContaining('/'), findsNothing);
+    });
+  }
 }

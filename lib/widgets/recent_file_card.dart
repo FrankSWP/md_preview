@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:md_preview/services/recent_files_repository.dart';
+import 'package:md_preview/utils/app_localizations.dart';
 import 'package:md_preview/utils/relative_time.dart';
 
 /// A card widget displaying a single recent file entry.
@@ -20,8 +21,10 @@ class RecentFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final placeholder = l.recentCardSharePlaceholder;
     final subtitle =
-        '${file.parentDir ?? '从分享接收'} · ${formatRelativeTime(file.lastOpenedAt)}';
+        '${file.parentDir ?? placeholder} · ${formatRelativeTime(file.lastOpenedAt, languageCode: l.locale.languageCode)}';
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
