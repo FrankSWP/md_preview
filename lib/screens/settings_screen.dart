@@ -151,18 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             title: Text(l.settingsAboutVersion),
-            subtitle: const Text('v0.3.0'),
-          ),
-          ListTile(
-            title: Text(l.settingsAboutOpenSource),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              showLicensePage(
-                context: context,
-                applicationName: l.appTitle,
-                applicationVersion: 'v0.3.0',
-              );
-            },
+            subtitle: const Text('v0.3.1'),
           ),
         ],
       ),
