@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] — 2026-07-07
+
+### Fixed
+
+- **Settings screen → white screen on real devices** — the Settings
+  page had a `ListTile` whose `trailing:` was a 3-segment
+  `SegmentedButton` (`跟随系统 / 浅色 / 深色`). On narrow phones the
+  trailing slot is ~320 px; the 3 localized labels don't fit, and
+  Flutter's `ListTile` throws a layout assertion
+  (`tileWidth != trailingSize?.width`). In release mode the
+  assertion is swallowed and the screen renders blank.
+
+  Fix: keep the ListTile for the label/subtitle, but move the
+  `SegmentedButton` into its own full-width row below it, wrapped
+  in a `Padding` + `SizedBox(width: double.infinity, ...)` so it
+  takes the full row width and lays out cleanly.
+
+  Regression test added: `test/app_flow_test.dart` →
+  `Settings renders without layout error on narrow phone` (test
+  surface set to 360 × 800 to mimic a narrow Android device).
+
 ## [0.3.3] — 2026-07-07
 
 ### Changed

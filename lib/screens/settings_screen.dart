@@ -75,23 +75,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             title: Text(_themeSettingLabel(l)),
             subtitle: Text(_themeLabel(mode, l)),
-            trailing: SegmentedButton<ThemeMode>(
-              segments: [
-                ButtonSegment(
-                  value: ThemeMode.system,
-                  label: Text(l.settingsThemeSystem),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.light,
-                  label: Text(l.settingsThemeLight),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text(l.settingsThemeDark),
-                ),
-              ],
-              selected: {mode},
-              onSelectionChanged: (s) => _s.setThemeMode(s.first),
+          ),
+          // SegmentedButton is placed in its own padded row, NOT as
+          // a ListTile.trailing — a 3-segment button with localized
+          // labels ("跟随系统 / 浅色 / 深色") exceeds the trailing slot
+          // width on narrow phones and triggers a ListTile layout
+          // assertion failure. (Regression: v0.3.3 — was a white screen.)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                segments: [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    label: Text(l.settingsThemeSystem),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    label: Text(l.settingsThemeLight),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    label: Text(l.settingsThemeDark),
+                  ),
+                ],
+                selected: {mode},
+                onSelectionChanged: (s) => _s.setThemeMode(s.first),
+              ),
             ),
           ),
           const Divider(),
