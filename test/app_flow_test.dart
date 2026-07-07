@@ -14,11 +14,24 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // Mock the file_picker platform channel so opening the picker doesn't
-  // crash the test.
+  // crash the test. Also mock package_info_plus (used in Settings →
+  // About) to a fake version so tests don't depend on a real build.
   setUpAll(() {
-    const channel = MethodChannel('mrugnanski/file_picker');
+    const filePickerChannel = MethodChannel('mrugnanski/file_picker');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async => null);
+        .setMockMethodCallHandler(filePickerChannel, (call) async => null);
+
+    const packageInfoChannel = MethodChannel('dev.fluttercommunity.plus/package_info');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(packageInfoChannel, (call) async {
+      return {
+        'appName': 'md_preview',
+        'packageName': 'com.mdpreview.md_preview',
+        'version': '0.3.5',
+        'buildNumber': '8',
+        'buildSignature': '',
+      };
+    });
   });
 
   setUp(() {

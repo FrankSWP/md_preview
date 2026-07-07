@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:md_preview/services/settings_service.dart';
 import 'package:md_preview/utils/app_localizations.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsService settings;
@@ -12,6 +13,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late final SettingsService _s = widget.settings;
+  final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
 
   @override
   void initState() {
@@ -180,7 +182,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             title: Text(l.settingsAboutVersion),
-            subtitle: const Text('v0.3.2'),
+            subtitle: FutureBuilder<PackageInfo>(
+              future: _packageInfo,
+              builder: (context, snap) {
+                final v = snap.hasData
+                    ? 'v${snap.data!.version}+${snap.data!.buildNumber}'
+                    : '...';
+                return Text(v);
+              },
+            ),
           ),
         ],
       ),

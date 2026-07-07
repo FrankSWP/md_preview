@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] — 2026-07-07
+
+### Changed
+
+- **Settings → About → Version is now dynamic** — replaced the
+  hard-coded `v0.3.2` string with `package_info_plus`'s
+  `PackageInfo.fromPlatform()`, so the display always matches
+  `pubspec.yaml`'s `version:`. Every prior release from v0.2.0
+  onward was a hard-coded literal that had to be hand-edited on
+  each release — and was missed in v0.3.4. Now it can't drift.
+
+  New dep: `package_info_plus: ^8.0.0`.
+
 ## [0.3.4] — 2026-07-07
 
 ### Fixed
