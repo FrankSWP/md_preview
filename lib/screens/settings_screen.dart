@@ -31,21 +31,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _onChange() => setState(() {});
 
-  String _themeLabel(ThemeMode m, AppLocalizations l) => switch (m) {
-        ThemeMode.system => l.settingsThemeSystem,
-        ThemeMode.light => l.settingsThemeLight,
-        ThemeMode.dark => l.settingsThemeDark,
-      };
-
-  String _themeSectionLabel(AppLocalizations l) => l.settingsSectionAppearance;
-  String _themeSettingLabel(AppLocalizations l) => l.settingsThemeLabel;
-  String _fontSizeLabel(AppLocalizations l) => l.settingsFontSizeLabel;
-  String _languageSectionLabel(AppLocalizations l) => l.settingsSectionLanguage;
-  String _languageSettingLabel(AppLocalizations l) => l.settingsLanguageLabel;
-  String _aboutSectionLabel(AppLocalizations l) => l.settingsSectionAbout;
-
   @override
   Widget build(BuildContext context) {
+    // Defensive: surface any build-time exception in-app rather than
+    // leaving the user with a blank white screen. Should never fire,
+    // but if something does throw (e.g. corrupt SharedPreferences data)
+    // the user sees the error instead of a blank screen.
+    try {
+      return _buildContent(context);
+    } catch (e, st) {
+      debugPrint('[SettingsScreen] build error: $e\n$st');
+      return Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Settings failed to render.\n\n$e\n\n$st',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContent(BuildContext context) {
     final l = AppLocalizations.of(context);
     final mode = _s.themeModeListenable.value;
     final size = _s.fontSizeListenable.value;
@@ -68,9 +77,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(_themeLabel(mode, l)),
             trailing: SegmentedButton<ThemeMode>(
               segments: [
-                ButtonSegment(value: ThemeMode.system, label: Text(l.settingsThemeSystem)),
-                ButtonSegment(value: ThemeMode.light, label: Text(l.settingsThemeLight)),
-                ButtonSegment(value: ThemeMode.dark, label: Text(l.settingsThemeDark)),
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text(l.settingsThemeSystem),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text(l.settingsThemeLight),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text(l.settingsThemeDark),
+                ),
               ],
               selected: {mode},
               onSelectionChanged: (s) => _s.setThemeMode(s.first),
@@ -151,10 +169,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             title: Text(l.settingsAboutVersion),
-            subtitle: const Text('v0.3.1'),
+            subtitle: const Text('v0.3.2'),
           ),
         ],
       ),
     );
   }
+
+  String _themeLabel(ThemeMode m, AppLocalizations l) => switch (m) {
+        ThemeMode.system => l.settingsThemeSystem,
+        ThemeMode.light => l.settingsThemeLight,
+        ThemeMode.dark => l.settingsThemeDark,
+      };
+
+  String _themeSectionLabel(AppLocalizations l) => l.settingsSectionAppearance;
+  String _themeSettingLabel(AppLocalizations l) => l.settingsThemeLabel;
+  String _fontSizeLabel(AppLocalizations l) => l.settingsFontSizeLabel;
+  String _languageSectionLabel(AppLocalizations l) => l.settingsSectionLanguage;
+  String _languageSettingLabel(AppLocalizations l) => l.settingsLanguageLabel;
+  String _aboutSectionLabel(AppLocalizations l) => l.settingsSectionAbout;
 }
