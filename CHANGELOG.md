@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — 2026-07-07
+
+### Changed
+
+- **Settings screen defensive build** — `SettingsScreen.build` is now
+  wrapped in a try/catch. If anything ever throws during build (e.g.
+  corrupt SharedPreferences data, a missing translation key, an
+  unexpected locale), the screen now shows the error message in-app
+  rather than going blank white. A `debugPrint` also logs the full
+  stack trace so logcat shows the root cause. Hardened against the
+  user-reported "Settings → white screen" symptom that the test
+  harness cannot reproduce.
+- Version display in `Settings → 关于` now reads `v0.3.3` (was
+  hard-coded to `v0.3.1` and didn't follow the pubspec).
+
 ## [0.3.2] — 2026-07-06
 
 ### Fixed
