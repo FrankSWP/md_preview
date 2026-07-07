@@ -96,6 +96,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  // Regression: SegmentedButton (3 segments) used as ListTile.trailing
+  // throws a layout assertion on narrow phones (the trailing slot can't
+  // fit 3 localized labels like '跟随系统 / 浅色 / 深色'). This test
+  // uses a typical narrow phone width to reproduce the white screen.
+  testWidgets('Settings renders without layout error on narrow phone',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final settings = await SettingsService.create();
+    final recents = RecentFilesRepository(prefs: prefs);
+    final fileService = FileService(reader: (_) async => '# hi');
+
+    // 360 logical px = typical narrow phone width.
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(MdPreviewApp(
+      settings: settings,
+      fileService: fileService,
+      recents: recents,
+    ),);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('设置'));
+    await tester.pumpAndSettle();
+
+    // The SegmentedButton should be in the tree, not as a trailing widget.
+    expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
+    expect(find.text('跟随系统'), findsWidgets);
+    expect(find.text('浅色'), findsOneWidget);
+    expect(find.text('深色'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Full flow: settings → switch to English → back → view all',
       (tester) async {
     final prefs = await SharedPreferences.getInstance();
